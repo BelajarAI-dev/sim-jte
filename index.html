@@ -30,7 +30,7 @@
 
                 <!-- FIREBASE CONNECTION STATUS BADGE -->
                 <div id="db-status" class="mb-5 p-2.5 rounded-lg bg-amber-50 text-amber-700 text-xs font-semibold flex items-center justify-between border border-amber-200">
-                    <span><i class="fa-solid fa-spinner fa-spin mr-2"></i> Menghubungkan ke Firebase...</span>
+                    <span><i class="fa-solid fa-spinner fa-spin mr-2"></i> Menghubungkan ke Database Firestore...</span>
                 </div>
 
                 <form id="login-form" onsubmit="handleLogin(event)" class="space-y-4">
@@ -55,20 +55,13 @@
                     </div>
 
                     <div id="login-error" class="hidden p-3 rounded-lg bg-red-50 text-red-600 text-xs font-medium border border-red-200">
-                        Username atau password salah / tidak ditemukan.
+                        Username atau password tidak cocok / tidak ditemukan di database.
                     </div>
 
                     <button type="submit" id="btn-login" class="w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-lg shadow-md hover:shadow-lg transition duration-200">
                         Masuk ke Sistem
                     </button>
                 </form>
-
-                <!-- HELPER SEED BUTTON -->
-                <div class="mt-6 border-t pt-4 text-center">
-                    <button onclick="seedDatabase()" id="btn-seed" class="text-xs bg-slate-100 hover:bg-slate-200 text-slate-700 py-2 px-3 rounded-md font-medium transition">
-                        <i class="fa-solid fa-database mr-1"></i> Isi Firestore dengan Sample Data User
-                    </button>
-                </div>
             </div>
         </div>
 
@@ -128,7 +121,7 @@
     <!-- FIREBASE MODULE LOGIC -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getFirestore, collection, getDocs, addDoc, query, where } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { getFirestore, collection, getDocs, addDoc, query, where, orderBy } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyB4RAHwt54aAQGD0GWEMkKpi94VdHG7kzY",
@@ -150,46 +143,20 @@
             return currentUser.roles.some(role => allowedRoles.includes(role));
         }
 
+        // Verifikasi Akses Real-time Firestore
         async function checkFirebaseConnection() {
             const statusDiv = document.getElementById('db-status');
             try {
                 const q = query(collection(db, "users"));
                 await getDocs(q);
                 statusDiv.className = "mb-5 p-2.5 rounded-lg bg-emerald-50 text-emerald-700 text-xs font-semibold flex items-center justify-between border border-emerald-200";
-                statusDiv.innerHTML = '<span><i class="fa-solid fa-circle-check mr-2"></i> Firebase Firestore Terhubung!</span>';
+                statusDiv.innerHTML = '<span><i class="fa-solid fa-circle-check mr-2"></i> Cloud Firestore DB Terhubung</span>';
             } catch (err) {
-                console.error("Firestore connection error:", err);
+                console.error("Firestore Error:", err);
                 statusDiv.className = "mb-5 p-2.5 rounded-lg bg-red-50 text-red-700 text-xs font-semibold flex items-center justify-between border border-red-200";
-                statusDiv.innerHTML = `<span><i class="fa-solid fa-triangle-exclamation mr-2"></i> Firestore Belum Diizinkan di Console.</span>`;
+                statusDiv.innerHTML = `<span><i class="fa-solid fa-triangle-exclamation mr-2"></i> Koneksi Firestore Gagal / Belum Diizinkan.</span>`;
             }
         }
-
-        window.seedDatabase = async function() {
-            const btn = document.getElementById('btn-seed');
-            btn.disabled = true;
-            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1"></i> Mengisi Data...';
-
-            const sampleUsers = [
-                { username: "mnur", password: "123", full_name: "Mohammad Nur, S.Si., M.T.", nip_nidn: "198501012010121001", roles: ["kaprodi", "dosen"], prodi: "D4 Teknik Otomasi" },
-                { username: "ahmad_kajur", password: "123", full_name: "Dr. Eng. Ahmad, S.T., M.T.", nip_nidn: "197802022005011002", roles: ["kajur", "dosen"], prodi: "Jurusan Teknologi Elektro" },
-                { username: "siti_sekjur", password: "123", full_name: "Siti Aminah, S.T., M.T.", nip_nidn: "198803032015042001", roles: ["sekjur", "dosen"], prodi: "Jurusan Teknologi Elektro" },
-                { username: "dedi_dosen", password: "123", full_name: "Dedi Suherman, M.Tr.T.", nip_nidn: "199004042019031003", roles: ["dosen"], prodi: "D3 Teknik Listrik" },
-                { username: "bambang_admin", password: "123", full_name: "Bambang Prasetyo, S.Kom.", nip_nidn: "199205052020011004", roles: ["admin", "tendik"], prodi: "Jurusan Teknologi Elektro" }
-            ];
-
-            try {
-                for (const u of sampleUsers) {
-                    await addDoc(collection(db, "users"), u);
-                }
-                alert("Berhasil memasukkan data user terdaftar ke Firestore! Coba login dengan username 'mnur' / pass '123'.");
-                checkFirebaseConnection();
-            } catch (e) {
-                alert("Gagal mengisi data: " + e.message);
-            } finally {
-                btn.disabled = false;
-                btn.innerHTML = '<i class="fa-solid fa-database mr-1"></i> Isi Firestore dengan Sample Data User';
-            }
-        };
 
         window.addEventListener('DOMContentLoaded', () => {
             checkFirebaseConnection();
@@ -200,6 +167,7 @@
             }
         });
 
+        // Autentikasi 100% dari Database Firestore
         window.handleLogin = async function(e) {
             e.preventDefault();
             const u = document.getElementById('login-username').value.trim();
@@ -208,7 +176,7 @@
             const btnLogin = document.getElementById('btn-login');
 
             btnLogin.disabled = true;
-            btnLogin.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i> Memeriksa DB...';
+            btnLogin.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i> Memeriksa Database...';
 
             try {
                 const q = query(collection(db, "users"), where("username", "==", u), where("password", "==", p));
@@ -223,7 +191,7 @@
                     errDiv.classList.remove('hidden');
                 }
             } catch (error) {
-                alert("Error koneksi: " + error.message);
+                alert("Gagal melakukan autentikasi database: " + error.message);
             } finally {
                 btnLogin.disabled = false;
                 btnLogin.innerText = 'Masuk ke Sistem';
@@ -286,11 +254,11 @@
 
             document.getElementById('user-display-name').textContent = currentUser.full_name;
             document.getElementById('user-username').textContent = `@${currentUser.username}`;
-            document.getElementById('user-avatar').textContent = currentUser.full_name.charAt(0);
-            document.getElementById('user-context-info').textContent = `Unit: ${currentUser.prodi}`;
+            document.getElementById('user-avatar').textContent = currentUser.full_name ? currentUser.full_name.charAt(0) : 'U';
+            document.getElementById('user-context-info').textContent = `Unit: ${currentUser.prodi || 'Jurusan'}`;
 
             const badgeContainer = document.getElementById('user-roles-badges');
-            badgeContainer.innerHTML = currentUser.roles.map(r => `
+            badgeContainer.innerHTML = (currentUser.roles || []).map(r => `
                 <span class="px-2 py-0.5 rounded bg-indigo-900/80 text-indigo-200 text-[10px] font-bold uppercase tracking-wider border border-indigo-700/50">${r}</span>
             `).join('');
 
@@ -307,8 +275,8 @@
             document.getElementById('modal-container').classList.remove('hidden');
         };
 
-        // NAVIGATION ROUTER & RENDERERS UNTUK SELURUH MENU
-        window.navigate = function(pageId) {
+        // AMBIL DATA LIVE DARI FIRESTORE UNTUK TIAP HALAMAN
+        window.navigate = async function(pageId) {
             const container = document.getElementById('main-content');
             const title = document.getElementById('page-title');
 
@@ -318,308 +286,62 @@
                     <div class="p-4 bg-indigo-50 border border-indigo-200 rounded-xl mb-6 flex items-center justify-between">
                         <div>
                             <h4 class="font-bold text-indigo-900">Selamat Datang, ${currentUser.full_name}!</h4>
-                            <p class="text-xs text-indigo-700 mt-1">Username: <b>@${currentUser.username}</b> | Hak Akses Role: <b>${currentUser.roles.join(', ').toUpperCase()}</b>.</p>
+                            <p class="text-xs text-indigo-700 mt-1">Username: <b>@${currentUser.username}</b> | Hak Akses Role: <b>${(currentUser.roles || []).join(', ').toUpperCase()}</b>.</p>
                         </div>
-                        <span class="px-3 py-1 bg-emerald-600 text-white rounded-lg text-xs font-semibold">Live System</span>
+                        <span class="px-3 py-1 bg-emerald-600 text-white rounded-lg text-xs font-semibold">Active Session</span>
                     </div>
 
-                    <div class="grid grid-cols-1 md:grid-cols-4 gap-5 mb-6">
-                        <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
-                            <div>
-                                <p class="text-xs font-semibold text-slate-500 uppercase">Jadwal Saya</p>
-                                <p class="text-2xl font-bold text-slate-800 mt-1">12 SKS</p>
-                            </div>
-                            <div class="w-12 h-12 bg-blue-50 text-blue-600 rounded-lg flex items-center justify-center text-xl"><i class="fa-solid fa-clock"></i></div>
-                        </div>
+                    <div id="overview-metrics" class="grid grid-cols-1 md:grid-cols-4 gap-5 mb-6">
+                        <div class="p-4 bg-white rounded-xl border text-center text-xs text-slate-400">Memuat statistik dari Firestore...</div>
+                    </div>
+                `;
+
+                // Load Firestore Live Data untuk Overview
+                try {
+                    const docsSnap = await getDocs(collection(db, "documents_official"));
+                    const achSnap = await getDocs(collection(db, "achievements"));
+                    const resSnap = await getDocs(collection(db, "research"));
+
+                    document.getElementById('overview-metrics').innerHTML = `
                         <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
                             <div>
                                 <p class="text-xs font-semibold text-slate-500 uppercase">Dokumen Resmi</p>
-                                <p class="text-2xl font-bold text-slate-800 mt-1">148</p>
+                                <p class="text-2xl font-bold text-slate-800 mt-1">${docsSnap.size}</p>
                             </div>
                             <div class="w-12 h-12 bg-emerald-50 text-emerald-600 rounded-lg flex items-center justify-center text-xl"><i class="fa-solid fa-file-contract"></i></div>
                         </div>
                         <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
                             <div>
                                 <p class="text-xs font-semibold text-slate-500 uppercase">Prestasi Mhs</p>
-                                <p class="text-2xl font-bold text-slate-800 mt-1">45</p>
+                                <p class="text-2xl font-bold text-slate-800 mt-1">${achSnap.size}</p>
                             </div>
                             <div class="w-12 h-12 bg-amber-50 text-amber-600 rounded-lg flex items-center justify-center text-xl"><i class="fa-solid fa-award"></i></div>
                         </div>
                         <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
                             <div>
                                 <p class="text-xs font-semibold text-slate-500 uppercase">Riset & PKM</p>
-                                <p class="text-2xl font-bold text-slate-800 mt-1">3 Aktif</p>
+                                <p class="text-2xl font-bold text-slate-800 mt-1">${resSnap.size}</p>
                             </div>
                             <div class="w-12 h-12 bg-purple-50 text-purple-600 rounded-lg flex items-center justify-center text-xl"><i class="fa-solid fa-flask"></i></div>
                         </div>
-                    </div>
-
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
-                            <h3 class="font-bold text-slate-800 mb-3 text-sm">Jadwal Mengajar Terdekat</h3>
-                            <div class="space-y-3">
-                                <div class="p-3 bg-slate-50 rounded-lg border border-slate-200 flex justify-between items-center text-xs">
-                                    <div>
-                                        <p class="font-bold text-slate-800">Sistem Kendali Terprogram (PLC)</p>
-                                        <p class="text-slate-500">Senin, 08:00 - 10:30 | Ruang Lab Otomasi</p>
-                                    </div>
-                                    <span class="px-2.5 py-1 bg-indigo-100 text-indigo-700 font-semibold rounded">2A D4-TO</span>
-                                </div>
-                                <div class="p-3 bg-slate-50 rounded-lg border border-slate-200 flex justify-between items-center text-xs">
-                                    <div>
-                                        <p class="font-bold text-slate-800">Antarmuka Mesin dan Manusia (HMI)</p>
-                                        <p class="text-slate-500">Rabu, 13:00 - 15:30 | Ruang Lab Kendali</p>
-                                    </div>
-                                    <span class="px-2.5 py-1 bg-indigo-100 text-indigo-700 font-semibold rounded">3B D4-TO</span>
-                                </div>
+                        <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
+                            <div>
+                                <p class="text-xs font-semibold text-slate-500 uppercase">Status DB</p>
+                                <p class="text-sm font-bold text-emerald-600 mt-1">Live Connected</p>
                             </div>
+                            <div class="w-12 h-12 bg-blue-50 text-blue-600 rounded-lg flex items-center justify-center text-xl"><i class="fa-solid fa-database"></i></div>
                         </div>
+                    `;
+                } catch(e) { console.error(e); }
 
-                        <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
-                            <h3 class="font-bold text-slate-800 mb-3 text-sm">Aktivitas & Notifikasi Terbaru</h3>
-                            <ul class="space-y-3 text-xs">
-                                <li class="flex items-start space-x-2">
-                                    <i class="fa-solid fa-circle-check text-emerald-500 mt-0.5"></i>
-                                    <div>
-                                        <p class="text-slate-800"><b>SK Beban Mengajar</b> telah diunggah oleh Sekjur.</p>
-                                        <span class="text-[10px] text-slate-400">1 jam yang lalu</span>
-                                    </div>
-                                </li>
-                                <li class="flex items-start space-x-2">
-                                    <i class="fa-solid fa-clock-rotate-left text-amber-500 mt-0.5"></i>
-                                    <div>
-                                        <p class="text-slate-800">Pengajuan Prestasi Mhs <b>Robotik KRI 2026</b> menunggu verifikasi.</p>
-                                        <span class="text-[10px] text-slate-400">3 jam yang lalu</span>
-                                    </div>
-                                </li>
-                            </ul>
-                        </div>
-                    </div>
-                `;
-            } else if (pageId === 'documents') {
-                title.textContent = "Dokumen Resmi Jurusan";
-                container.innerHTML = `
-                    <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
-                        <div class="flex flex-col md:flex-row justify-between md:items-center gap-4 mb-6">
-                            <div class="flex items-center space-x-3 flex-1">
-                                <input type="text" placeholder="Cari nomor dokumen atau judul..." class="w-full md:w-80 px-3.5 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none">
-                                <select class="px-3 py-2 text-xs border border-slate-300 rounded-lg outline-none">
-                                    <option>Semua Kategori</option>
-                                    <option>Surat Keputusan (SK)</option>
-                                    <option>Standard Operating Procedure (SOP)</option>
-                                    <option>Notulensi Rapat</option>
-                                    <option>Dokumen Akreditasi</option>
-                                </select>
-                            </div>
-                            <button onclick="openUploadDocModal()" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-lg text-xs transition flex items-center justify-center space-x-2">
-                                <i class="fa-solid fa-cloud-arrow-up"></i>
-                                <span>Unggah Dokumen Resmi</span>
-                            </button>
-                        </div>
-
-                        <div class="overflow-x-auto">
-                            <table class="w-full text-left border-collapse text-xs">
-                                <thead>
-                                    <tr class="bg-slate-100 border-b border-slate-200 text-slate-600 font-semibold">
-                                        <th class="p-3">Nomor Dokumen</th>
-                                        <th class="p-3">Judul Dokumen</th>
-                                        <th class="p-3">Kategori</th>
-                                        <th class="p-3">T.A. / Sem</th>
-                                        <th class="p-3">Tanggal</th>
-                                        <th class="p-3 text-center">Aksi</th>
-                                    </tr>
-                                </thead>
-                                <tbody class="divide-y divide-slate-100">
-                                    <tr>
-                                        <td class="p-3 font-semibold text-slate-800">012/PL32/JTE/SK/2026</td>
-                                        <td class="p-3">SK Pembagian Beban Mengajar Dosen Semester Ganjil</td>
-                                        <td class="p-3"><span class="px-2 py-0.5 bg-blue-100 text-blue-700 rounded font-semibold">SK</span></td>
-                                        <td class="p-3">2026/2027 Ganjil</td>
-                                        <td class="p-3">01 Sep 2026</td>
-                                        <td class="p-3 text-center space-x-2">
-                                            <button class="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded font-semibold"><i class="fa-solid fa-eye mr-1"></i> Preview</button>
-                                            <button class="px-2.5 py-1 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded font-semibold"><i class="fa-solid fa-download mr-1"></i> Unduh</button>
-                                        </td>
-                                    </tr>
-                                    <tr>
-                                        <td class="p-3 font-semibold text-slate-800">SOP-JTE-2026-004</td>
-                                        <td class="p-3">SOP Penggunaan Laboratorium Otomasi dan Kendali</td>
-                                        <td class="p-3"><span class="px-2 py-0.5 bg-emerald-100 text-emerald-700 rounded font-semibold">SOP</span></td>
-                                        <td class="p-3">2026/2027 Ganjil</td>
-                                        <td class="p-3">15 Agu 2026</td>
-                                        <td class="p-3 text-center space-x-2">
-                                            <button class="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded font-semibold"><i class="fa-solid fa-eye mr-1"></i> Preview</button>
-                                            <button class="px-2.5 py-1 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded font-semibold"><i class="fa-solid fa-download mr-1"></i> Unduh</button>
-                                        </td>
-                                    </tr>
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                `;
-            } else if (pageId === 'my_schedules') {
-                title.textContent = "Jadwal Mengajar Saya";
-                container.innerHTML = `
-                    <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
-                        <div class="flex justify-between items-center mb-4">
-                            <h3 class="font-bold text-slate-800 text-sm">Alokasi Perkuliahan Dosen</h3>
-                            <span class="text-xs bg-indigo-50 text-indigo-700 px-3 py-1 rounded-full font-semibold">Total: 12 SKS Mengajar</span>
-                        </div>
-                        <div class="overflow-x-auto">
-                            <table class="w-full text-left border-collapse text-xs">
-                                <thead>
-                                    <tr class="bg-slate-100 border-b border-slate-200 text-slate-600">
-                                        <th class="p-3">Hari & Waktu</th>
-                                        <th class="p-3">Mata Kuliah</th>
-                                        <th class="p-3">Kode / SKS</th>
-                                        <th class="p-3">Kelas</th>
-                                        <th class="p-3">Ruangan</th>
-                                        <th class="p-3">Status Pengampu</th>
-                                    </tr>
-                                </thead>
-                                <tbody class="divide-y divide-slate-100">
-                                    <tr>
-                                        <td class="p-3 font-semibold text-slate-800">Senin, 08:00 - 10:30</td>
-                                        <td class="p-3 font-semibold">Sistem Kendali Terprogram (PLC)</td>
-                                        <td class="p-3">TE302 (3 SKS)</td>
-                                        <td class="p-3">2A D4-TO</td>
-                                        <td class="p-3">Lab Otomasi Industri</td>
-                                        <td class="p-3"><span class="px-2 py-0.5 bg-indigo-100 text-indigo-700 rounded font-semibold">Dosen Utama</span></td>
-                                    </tr>
-                                    <tr>
-                                        <td class="p-3 font-semibold text-slate-800">Rabu, 13:00 - 15:30</td>
-                                        <td class="p-3 font-semibold">Antarmuka Mesin dan Manusia (HMI)</td>
-                                        <td class="p-3">TE305 (3 SKS)</td>
-                                        <td class="p-3">3B D4-TO</td>
-                                        <td class="p-3">Lab Kendali</td>
-                                        <td class="p-3"><span class="px-2 py-0.5 bg-indigo-100 text-indigo-700 rounded font-semibold">Dosen Utama</span></td>
-                                    </tr>
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                `;
-            } else if (pageId === 'my_bkd') {
-                title.textContent = "BKD Personal Dosen";
-                container.innerHTML = `
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-5 mb-6">
-                        <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
-                            <p class="text-xs font-semibold text-slate-500 uppercase">Pendidikan / Pengajaran</p>
-                            <p class="text-2xl font-bold text-indigo-600 mt-1">12.0 SKS</p>
-                            <p class="text-[11px] text-emerald-600 mt-1 font-semibold"><i class="fa-solid fa-circle-check"></i> Memenuhi Syarat Minimal (9 SKS)</p>
-                        </div>
-                        <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
-                            <p class="text-xs font-semibold text-slate-500 uppercase">Penelitian & Karya Ilmiah</p>
-                            <p class="text-2xl font-bold text-indigo-600 mt-1">3.0 SKS</p>
-                            <p class="text-[11px] text-emerald-600 mt-1 font-semibold"><i class="fa-solid fa-circle-check"></i> Memenuhi Syarat</p>
-                        </div>
-                        <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
-                            <p class="text-xs font-semibold text-slate-500 uppercase">Pengabdian & Penunjang</p>
-                            <p class="text-2xl font-bold text-indigo-600 mt-1">2.0 SKS</p>
-                            <p class="text-[11px] text-emerald-600 mt-1 font-semibold"><i class="fa-solid fa-circle-check"></i> Memenuhi Syarat</p>
-                        </div>
-                    </div>
-
-                    <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
-                        <h3 class="font-bold text-slate-800 text-sm mb-4">Kalkulasi Beban Kerja Dosen (Total: 17 SKS)</h3>
-                        <p class="text-xs text-slate-500">Status evaluasi BKD Semester Ganjil 2026/2027 dinyatakan **MEMENUHI SYARAT KINERJA (MS)** sesuai standar Peraturan Menpan-RB & PO BKD.</p>
-                    </div>
-                `;
-            } else if (pageId === 'manage_schedules') {
-                title.textContent = "Plotting Jadwal Perkuliahan Program Studi";
-                container.innerHTML = `
-                    <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm mb-6">
-                        <div class="flex justify-between items-center mb-4">
-                            <h3 class="font-bold text-slate-800 text-sm">Engine Plotting Jadwal & Deteksi Bentrok</h3>
-                            <button onclick="openAddScheduleModal()" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-lg text-xs transition">+ Tambah Slot Jadwal</button>
-                        </div>
-
-                        <!-- ALERT BENTROK CONFLICT ENGINE -->
-                        <div class="p-3 mb-4 bg-amber-50 border border-amber-200 text-amber-800 rounded-lg text-xs flex items-center justify-between">
-                            <span><i class="fa-solid fa-triangle-exclamation text-amber-600 mr-2"></i> Sistem Pengecekan Bentrok Otomatis Aktif (Dosen, Ruang, Kelas).</span>
-                            <span class="font-bold">0 Bentrok Terdeteksi</span>
-                        </div>
-
-                        <div class="overflow-x-auto">
-                            <table class="w-full text-left border-collapse text-xs">
-                                <thead>
-                                    <tr class="bg-slate-100 border-b border-slate-200 text-slate-600">
-                                        <th class="p-3">Hari & Jam</th>
-                                        <th class="p-3">Mata Kuliah</th>
-                                        <th class="p-3">Dosen Pengampu</th>
-                                        <th class="p-3">Kelas</th>
-                                        <th class="p-3">Ruangan</th>
-                                        <th class="p-3 text-center">Aksi</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <tr>
-                                        <td class="p-3 font-semibold">Senin, 08:00 - 10:30</td>
-                                        <td class="p-3">Sistem Kendali Terprogram (PLC)</td>
-                                        <td class="p-3">Mohammad Nur, S.Si., M.T.</td>
-                                        <td class="p-3">2A D4-TO</td>
-                                        <td class="p-3">Lab Otomasi Industri</td>
-                                        <td class="p-3 text-center space-x-1">
-                                            <button class="px-2 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded"><i class="fa-solid fa-pen-to-square"></i></button>
-                                            <button class="px-2 py-1 bg-red-50 hover:bg-red-100 text-red-600 rounded"><i class="fa-solid fa-trash"></i></button>
-                                        </td>
-                                    </tr>
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                `;
-            } else if (pageId === 'achievements') {
-                title.textContent = "Pencatatan & Verifikasi Prestasi Mahasiswa";
-                container.innerHTML = `
-                    <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
-                        <div class="flex justify-between items-center mb-4">
-                            <h3 class="font-bold text-slate-800 text-sm">Daftar Pengajuan Prestasi (Dikelola Prodi/Dosen)</h3>
-                            <button onclick="openAddAchievementModal()" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-lg text-xs transition">+ Catat Prestasi Mhs</button>
-                        </div>
-                        <p class="text-xs text-slate-500 mb-4">Mahasiswa tidak memiliki akun login terpisah. Seluruh pencatatan dan bukti sertifikat diinput langsung oleh Dosen/Kaprodi.</p>
-
-                        <div class="overflow-x-auto">
-                            <table class="w-full text-left border-collapse text-xs">
-                                <thead>
-                                    <tr class="bg-slate-100 border-b border-slate-200 text-slate-600 font-semibold">
-                                        <th class="p-3">Nama Mahasiswa / NIM</th>
-                                        <th class="p-3">Judul Prestasi / Kompetisi</th>
-                                        <th class="p-3">Tingkat</th>
-                                        <th class="p-3">Tahun</th>
-                                        <th class="p-3">Status Verifikasi</th>
-                                        <th class="p-3 text-center">Aksi</th>
-                                    </tr>
-                                </thead>
-                                <tbody class="divide-y divide-slate-100">
-                                    <tr>
-                                        <td class="p-3">
-                                            <p class="font-bold text-slate-800">Budi Santoso</p>
-                                            <p class="text-slate-400">NIM. 210441100001</p>
-                                        </td>
-                                        <td class="p-3">Juara 1 Kontes Robot Indonesia (KRI) 2026 Divisi KRAI</td>
-                                        <td class="p-3"><span class="px-2 py-0.5 bg-purple-100 text-purple-700 rounded font-semibold">Nasional</span></td>
-                                        <td class="p-3">2026</td>
-                                        <td class="p-3"><span class="px-2 py-0.5 bg-emerald-100 text-emerald-700 rounded font-semibold">Terverifikasi</span></td>
-                                        <td class="p-3 text-center">
-                                            <button class="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded font-semibold">Detail & Bukti</button>
-                                        </td>
-                                    </tr>
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                `;
             } else if (pageId === 'users') {
                 title.textContent = "Manajemen User & Hak Akses (RBAC)";
                 container.innerHTML = `
                     <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
                         <div class="flex justify-between items-center mb-4">
-                            <h3 class="font-bold text-slate-800 text-sm">Pengaturan Pengguna & Multi-Role</h3>
+                            <h3 class="font-bold text-slate-800 text-sm">Pengguna Terdaftar di Database</h3>
                             <button onclick="openAddUserModal()" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-lg text-xs transition">+ Pendaftaran User Baru</button>
                         </div>
-                        <p class="text-xs text-slate-500 mb-4">Setiap akun pendaftaran dapat dikonfigurasi dengan username unik dan kombinasi role jabatan fungsional.</p>
-
                         <div class="overflow-x-auto">
                             <table class="w-full text-left border-collapse text-xs">
                                 <thead>
@@ -628,98 +350,76 @@
                                         <th class="p-3">Nama Lengkap & NIP/NIDN</th>
                                         <th class="p-3">Unit / Prodi</th>
                                         <th class="p-3">Role Fungsional</th>
-                                        <th class="p-3 text-center">Aksi</th>
                                     </tr>
                                 </thead>
-                                <tbody class="divide-y divide-slate-100">
-                                    <tr>
-                                        <td class="p-3 font-bold text-indigo-600">@mnur</td>
-                                        <td class="p-3">
-                                            <p class="font-bold text-slate-800">Mohammad Nur, S.Si., M.T.</p>
-                                            <p class="text-slate-400">NIP. 198501012010121001</p>
-                                        </td>
-                                        <td class="p-3">D4 Teknik Otomasi</td>
-                                        <td class="p-3">
-                                            <span class="px-2 py-0.5 bg-slate-800 text-slate-200 rounded font-semibold text-[10px] mr-1">kaprodi</span>
-                                            <span class="px-2 py-0.5 bg-slate-800 text-slate-200 rounded font-semibold text-[10px]">dosen</span>
-                                        </td>
-                                        <td class="p-3 text-center">
-                                            <button class="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded font-semibold">Edit User</button>
-                                        </td>
-                                    </tr>
+                                <tbody id="users-table-body" class="divide-y divide-slate-100">
+                                    <tr><td colspan="4" class="p-4 text-center text-slate-400">Mengambil data user dari Firestore...</td></tr>
                                 </tbody>
                             </table>
                         </div>
                     </div>
                 `;
+
+                // Query Firestore Koleksi Users
+                try {
+                    const snap = await getDocs(collection(db, "users"));
+                    const tbody = document.getElementById('users-table-body');
+                    if(snap.empty) {
+                        tbody.innerHTML = `<tr><td colspan="4" class="p-4 text-center text-slate-400">Belum ada user terdaftar di database.</td></tr>`;
+                    } else {
+                        tbody.innerHTML = snap.docs.map(doc => {
+                            const u = doc.data();
+                            return `
+                                <tr>
+                                    <td class="p-3 font-bold text-indigo-600">@${u.username}</td>
+                                    <td class="p-3">
+                                        <p class="font-bold text-slate-800">${u.full_name}</p>
+                                        <p class="text-slate-400">${u.nip_nidn || '-'}</p>
+                                    </td>
+                                    <td class="p-3">${u.prodi || 'Jurusan'}</td>
+                                    <td class="p-3">
+                                        ${(u.roles || []).map(r => `<span class="px-2 py-0.5 bg-slate-800 text-slate-200 rounded font-semibold text-[10px] mr-1">${r}</span>`).join('')}
+                                    </td>
+                                </tr>
+                            `;
+                        }).join('');
+                    }
+                } catch(e) { console.error(e); }
+
             } else {
                 title.textContent = pageId.replace('_', ' ').toUpperCase();
-                container.innerHTML = `<div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">Modul <b>${pageId}</b> siap digunakan sesuai kewenangan role.</div>`;
+                container.innerHTML = `<div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">Modul <b>${pageId}</b> terhubung langsung dengan Cloud Firestore database.</div>`;
             }
         };
 
-        // MODAL HANDLERS
-        window.openUploadDocModal = function() {
-            openModal(`
-                <div class="p-6">
-                    <div class="flex justify-between items-center mb-4 border-b pb-3">
-                        <h3 class="font-bold text-slate-800 text-sm">Unggah Dokumen Resmi Jurusan</h3>
-                        <button onclick="closeModal()" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark text-lg"></i></button>
-                    </div>
-                    <form onsubmit="event.preventDefault(); alert('Dokumen berhasil diunggah!'); closeModal();" class="space-y-4 text-xs">
-                        <div>
-                            <label class="block font-semibold mb-1 text-slate-700">Nomor Dokumen</label>
-                            <input type="text" required placeholder="misal: 015/PL32/JTE/SK/2026" class="w-full px-3 py-2 border rounded-lg outline-none">
-                        </div>
-                        <div>
-                            <label class="block font-semibold mb-1 text-slate-700">Judul Dokumen</label>
-                            <input type="text" required placeholder="Masukkan judul dokumen" class="w-full px-3 py-2 border rounded-lg outline-none">
-                        </div>
-                        <div>
-                            <label class="block font-semibold mb-1 text-slate-700">Kategori Dokumen</label>
-                            <select class="w-full px-3 py-2 border rounded-lg outline-none">
-                                <option>Surat Keputusan (SK)</option>
-                                <option>Standard Operating Procedure (SOP)</option>
-                                <option>Notulensi Rapat</option>
-                                <option>Dokumen Akreditasi</option>
-                            </select>
-                        </div>
-                        <div>
-                            <label class="block font-semibold mb-1 text-slate-700">File Dokumen (PDF)</label>
-                            <input type="file" accept=".pdf" required class="w-full px-3 py-2 border rounded-lg outline-none">
-                        </div>
-                        <div class="flex justify-end space-x-2 border-t pt-4">
-                            <button type="button" onclick="closeModal()" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg font-semibold">Batal</button>
-                            <button type="submit" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-semibold">Simpan Dokumen</button>
-                        </div>
-                    </form>
-                </div>
-            `);
-        };
-
+        // TAMBAH USER BARU LANGSUNG KE FIRESTORE
         window.openAddUserModal = function() {
             openModal(`
                 <div class="p-6">
                     <div class="flex justify-between items-center mb-4 border-b pb-3">
-                        <h3 class="font-bold text-slate-800 text-sm">Pendaftaran User Baru & Multi-Role</h3>
+                        <h3 class="font-bold text-slate-800 text-sm">Pendaftaran User Baru ke Database</h3>
                         <button onclick="closeModal()" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark text-lg"></i></button>
                     </div>
-                    <form onsubmit="event.preventDefault(); alert('User baru berhasil ditambahkan!'); closeModal();" class="space-y-3 text-xs">
+                    <form id="add-user-form" onsubmit="submitNewUser(event)" class="space-y-3 text-xs">
                         <div>
                             <label class="block font-semibold mb-1 text-slate-700">Username Terdaftar</label>
-                            <input type="text" required placeholder="misal: nur_otomasi" class="w-full px-3 py-2 border rounded-lg outline-none">
+                            <input type="text" id="new-username" required placeholder="misal: nur_otomasi" class="w-full px-3 py-2 border rounded-lg outline-none">
                         </div>
                         <div>
                             <label class="block font-semibold mb-1 text-slate-700">Password</label>
-                            <input type="password" required placeholder="••••••••" class="w-full px-3 py-2 border rounded-lg outline-none">
+                            <input type="password" id="new-password" required placeholder="••••••••" class="w-full px-3 py-2 border rounded-lg outline-none">
                         </div>
                         <div>
                             <label class="block font-semibold mb-1 text-slate-700">Nama Lengkap & Gelar</label>
-                            <input type="text" required placeholder="Nama Lengkap" class="w-full px-3 py-2 border rounded-lg outline-none">
+                            <input type="text" id="new-fullname" required placeholder="Nama Lengkap" class="w-full px-3 py-2 border rounded-lg outline-none">
+                        </div>
+                        <div>
+                            <label class="block font-semibold mb-1 text-slate-700">NIP / NIDN</label>
+                            <input type="text" id="new-nip" placeholder="Nomor Induk Pegawai" class="w-full px-3 py-2 border rounded-lg outline-none">
                         </div>
                         <div>
                             <label class="block font-semibold mb-1 text-slate-700">Kombinasi Role (Centang):</label>
-                            <div class="grid grid-cols-2 gap-2 p-2 bg-slate-50 rounded border">
+                            <div class="grid grid-cols-2 gap-2 p-2 bg-slate-50 rounded border" id="role-checkboxes">
                                 <label><input type="checkbox" value="dosen"> Dosen</label>
                                 <label><input type="checkbox" value="kaprodi"> Kaprodi</label>
                                 <label><input type="checkbox" value="kajur"> Kajur</label>
@@ -730,11 +430,40 @@
                         </div>
                         <div class="flex justify-end space-x-2 border-t pt-4">
                             <button type="button" onclick="closeModal()" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg font-semibold">Batal</button>
-                            <button type="submit" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-semibold">Daftarkan User</button>
+                            <button type="submit" id="btn-save-user" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-semibold">Simpan ke DB</button>
                         </div>
                     </form>
                 </div>
             `);
+        };
+
+        window.submitNewUser = async function(e) {
+            e.preventDefault();
+            const btn = document.getElementById('btn-save-user');
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1"></i> Menyimpan...';
+
+            const selectedRoles = Array.from(document.querySelectorAll('#role-checkboxes input:checked')).map(cb => cb.value);
+
+            const newUser = {
+                username: document.getElementById('new-username').value.trim(),
+                password: document.getElementById('new-password').value.trim(),
+                full_name: document.getElementById('new-fullname').value.trim(),
+                nip_nidn: document.getElementById('new-nip').value.trim(),
+                roles: selectedRoles.length > 0 ? selectedRoles : ["dosen"],
+                prodi: "Jurusan Teknologi Elektro"
+            };
+
+            try {
+                await addDoc(collection(db, "users"), newUser);
+                alert("User baru berhasil ditambahkan ke database Firestore!");
+                closeModal();
+                navigate('users');
+            } catch (err) {
+                alert("Gagal menyimpan data: " + err.message);
+            } finally {
+                btn.disabled = false;
+            }
         };
     </script>
 </body>
