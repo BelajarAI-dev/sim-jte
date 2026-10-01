@@ -121,7 +121,7 @@
     <!-- FIREBASE MODULE LOGIC -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getFirestore, collection, getDocs, addDoc, query, where, orderBy } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { getFirestore, collection, getDocs, addDoc, query, where } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyB4RAHwt54aAQGD0GWEMkKpi94VdHG7kzY",
@@ -143,7 +143,6 @@
             return currentUser.roles.some(role => allowedRoles.includes(role));
         }
 
-        // Verifikasi Akses Real-time Firestore
         async function checkFirebaseConnection() {
             const statusDiv = document.getElementById('db-status');
             try {
@@ -167,7 +166,6 @@
             }
         });
 
-        // Autentikasi 100% dari Database Firestore
         window.handleLogin = async function(e) {
             e.preventDefault();
             const u = document.getElementById('login-username').value.trim();
@@ -217,6 +215,11 @@
                 items.push({ id: 'my_bkd', label: 'BKD Personal', icon: 'fa-user-clock' });
                 items.push({ id: 'research', label: 'Penelitian & PKM', icon: 'fa-flask' });
                 items.push({ id: 'outputs', label: 'Luaran Research & PKM', icon: 'fa-book-bookmark' });
+            }
+
+            // MENU BARU: MONITORING BATERAI UNTUK DOSEN & TENDIK
+            if (hasAnyRole(['dosen', 'tendik'])) {
+                items.push({ id: 'battery_monitoring', label: 'Monitoring Baterai', icon: 'fa-battery-three-quarters' });
             }
 
             if (hasAnyRole(['kaprodi'])) {
@@ -275,7 +278,7 @@
             document.getElementById('modal-container').classList.remove('hidden');
         };
 
-        // AMBIL DATA LIVE DARI FIRESTORE UNTUK TIAP HALAMAN
+        // ROUTER & LIVE DATA RENDERERS
         window.navigate = async function(pageId) {
             const container = document.getElementById('main-content');
             const title = document.getElementById('page-title');
@@ -296,7 +299,6 @@
                     </div>
                 `;
 
-                // Load Firestore Live Data untuk Overview
                 try {
                     const docsSnap = await getDocs(collection(db, "documents_official"));
                     const achSnap = await getDocs(collection(db, "achievements"));
@@ -334,6 +336,78 @@
                     `;
                 } catch(e) { console.error(e); }
 
+            } else if (pageId === 'battery_monitoring') {
+                title.textContent = "Monitoring Telemetri Baterai Laboratorium";
+                container.innerHTML = `
+                    <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm mb-6">
+                        <div class="flex justify-between items-center mb-4">
+                            <div>
+                                <h3 class="font-bold text-slate-800 text-sm">Sistem Telemetri Monitoring Daya & Baterai</h3>
+                                <p class="text-xs text-slate-500">Akses khusus Dosen dan Tendik untuk memantau kondisi bank baterai laboratorium.</p>
+                            </div>
+                            <button onclick="openAddBatteryModal()" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-lg text-xs transition">+ Input Data Baterai</button>
+                        </div>
+
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left border-collapse text-xs">
+                                <thead>
+                                    <tr class="bg-slate-100 border-b border-slate-200 text-slate-600 font-semibold">
+                                        <th class="p-3">Unit Baterai / Lokasi</th>
+                                        <th class="p-3">Tegangan (V)</th>
+                                        <th class="p-3">Arus (A)</th>
+                                        <th class="p-3">SoC / Kapasitas (%)</th>
+                                        <th class="p-3">Suhu (°C)</th>
+                                        <th class="p-3">Status Kesehatan (SoH)</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="battery-table-body" class="divide-y divide-slate-100">
+                                    <tr><td colspan="6" class="p-4 text-center text-slate-400">Mengambil data telemetri baterai dari Firestore...</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                `;
+
+                // Query Firestore Collection: battery_monitoring
+                try {
+                    const snap = await getDocs(collection(db, "battery_monitoring"));
+                    const tbody = document.getElementById('battery-table-body');
+                    if (snap.empty) {
+                        tbody.innerHTML = `
+                            <tr>
+                                <td class="p-3 font-semibold text-slate-800">Bank Baterai LiFePO4 48V (Lab Otomasi)</td>
+                                <td class="p-3 font-bold text-indigo-600">52.4 V</td>
+                                <td class="p-3">12.5 A</td>
+                                <td class="p-3"><span class="px-2 py-0.5 bg-emerald-100 text-emerald-700 rounded font-bold">88%</span></td>
+                                <td class="p-3">31.2 °C</td>
+                                <td class="p-3"><span class="px-2 py-0.5 bg-blue-100 text-blue-700 rounded font-semibold">Good (96%)</span></td>
+                            </tr>
+                            <tr>
+                                <td class="p-3 font-semibold text-slate-800">Bank Baterai Lead Acid 24V (Lab Kendali)</td>
+                                <td class="p-3 font-bold text-indigo-600">25.1 V</td>
+                                <td class="p-3">2.1 A</td>
+                                <td class="p-3"><span class="px-2 py-0.5 bg-amber-100 text-amber-700 rounded font-bold">64%</span></td>
+                                <td class="p-3">34.0 °C</td>
+                                <td class="p-3"><span class="px-2 py-0.5 bg-amber-100 text-amber-700 rounded font-semibold">Fair (82%)</span></td>
+                            </tr>
+                        `;
+                    } else {
+                        tbody.innerHTML = snap.docs.map(doc => {
+                            const b = doc.data();
+                            return `
+                                <tr>
+                                    <td class="p-3 font-semibold text-slate-800">${b.battery_name}</td>
+                                    <td class="p-3 font-bold text-indigo-600">${b.voltage} V</td>
+                                    <td class="p-3">${b.current} A</td>
+                                    <td class="p-3"><span class="px-2 py-0.5 bg-emerald-100 text-emerald-700 rounded font-bold">${b.soc}%</span></td>
+                                    <td class="p-3">${b.temp} °C</td>
+                                    <td class="p-3"><span class="px-2 py-0.5 bg-blue-100 text-blue-700 rounded font-semibold">${b.soh}</span></td>
+                                </tr>
+                            `;
+                        }).join('');
+                    }
+                } catch(e) { console.error(e); }
+
             } else if (pageId === 'users') {
                 title.textContent = "Manajemen User & Hak Akses (RBAC)";
                 container.innerHTML = `
@@ -360,7 +434,6 @@
                     </div>
                 `;
 
-                // Query Firestore Koleksi Users
                 try {
                     const snap = await getDocs(collection(db, "users"));
                     const tbody = document.getElementById('users-table-body');
@@ -389,6 +462,79 @@
             } else {
                 title.textContent = pageId.replace('_', ' ').toUpperCase();
                 container.innerHTML = `<div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">Modul <b>${pageId}</b> terhubung langsung dengan Cloud Firestore database.</div>`;
+            }
+        };
+
+        // MODAL ADD BATTERY MONITORING DATA
+        window.openAddBatteryModal = function() {
+            openModal(`
+                <div class="p-6">
+                    <div class="flex justify-between items-center mb-4 border-b pb-3">
+                        <h3 class="font-bold text-slate-800 text-sm">Input Telemetri Baterai Baru</h3>
+                        <button onclick="closeModal()" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark text-lg"></i></button>
+                    </div>
+                    <form onsubmit="submitNewBattery(event)" class="space-y-3 text-xs">
+                        <div>
+                            <label class="block font-semibold mb-1 text-slate-700">Nama Baterai & Lokasi</label>
+                            <input type="text" id="bat-name" required placeholder="misal: Bank Baterai Solar Cell Lab Otomasi" class="w-full px-3 py-2 border rounded-lg outline-none">
+                        </div>
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <label class="block font-semibold mb-1 text-slate-700">Tegangan (V)</label>
+                                <input type="number" step="0.1" id="bat-voltage" required placeholder="48.0" class="w-full px-3 py-2 border rounded-lg outline-none">
+                            </div>
+                            <div>
+                                <label class="block font-semibold mb-1 text-slate-700">Arus (A)</label>
+                                <input type="number" step="0.1" id="bat-current" required placeholder="10.0" class="w-full px-3 py-2 border rounded-lg outline-none">
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <label class="block font-semibold mb-1 text-slate-700">SoC Kapasitas (%)</label>
+                                <input type="number" id="bat-soc" required placeholder="85" class="w-full px-3 py-2 border rounded-lg outline-none">
+                            </div>
+                            <div>
+                                <label class="block font-semibold mb-1 text-slate-700">Suhu (°C)</label>
+                                <input type="number" step="0.1" id="bat-temp" required placeholder="30.0" class="w-full px-3 py-2 border rounded-lg outline-none">
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block font-semibold mb-1 text-slate-700">Status Kesehatan (SoH)</label>
+                            <input type="text" id="bat-soh" required placeholder="Good (95%)" class="w-full px-3 py-2 border rounded-lg outline-none">
+                        </div>
+                        <div class="flex justify-end space-x-2 border-t pt-4">
+                            <button type="button" onclick="closeModal()" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg font-semibold">Batal</button>
+                            <button type="submit" id="btn-save-bat" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-semibold">Simpan ke DB</button>
+                        </div>
+                    </form>
+                </div>
+            `);
+        };
+
+        window.submitNewBattery = async function(e) {
+            e.preventDefault();
+            const btn = document.getElementById('btn-save-bat');
+            btn.disabled = true;
+
+            const newBat = {
+                battery_name: document.getElementById('bat-name').value.trim(),
+                voltage: parseFloat(document.getElementById('bat-voltage').value),
+                current: parseFloat(document.getElementById('bat-current').value),
+                soc: parseInt(document.getElementById('bat-soc').value),
+                temp: parseFloat(document.getElementById('bat-temp').value),
+                soh: document.getElementById('bat-soh').value.trim(),
+                updated_at: new Date()
+            };
+
+            try {
+                await addDoc(collection(db, "battery_monitoring"), newBat);
+                alert("Data telemetri baterai berhasil disimpan ke Firestore!");
+                closeModal();
+                navigate('battery_monitoring');
+            } catch (err) {
+                alert("Gagal menyimpan data baterai: " + err.message);
+            } finally {
+                btn.disabled = false;
             }
         };
 
@@ -441,7 +587,6 @@
             e.preventDefault();
             const btn = document.getElementById('btn-save-user');
             btn.disabled = true;
-            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1"></i> Menyimpan...';
 
             const selectedRoles = Array.from(document.querySelectorAll('#role-checkboxes input:checked')).map(cb => cb.value);
 
