@@ -8,6 +8,9 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- FontAwesome CDN -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .sidebar-active { background-color: rgba(255, 255, 255, 0.15); border-left: 4px solid #6366f1; }
+    </style>
 </head>
 <body class="bg-slate-100 font-sans text-slate-800 antialiased">
 
@@ -63,9 +66,8 @@
                 <!-- HELPER SEED BUTTON -->
                 <div class="mt-6 border-t pt-4 text-center">
                     <button onclick="seedDatabase()" id="btn-seed" class="text-xs bg-slate-100 hover:bg-slate-200 text-slate-700 py-2 px-3 rounded-md font-medium transition">
-                        <i class="fa-solid fa-database mr-1"></i> Isi Firestore dengan Data Demo Awal
+                        <i class="fa-solid fa-database mr-1"></i> Isi/Reset Firestore Data Demo Multi-Role
                     </button>
-                    <p class="text-[11px] text-slate-400 mt-2">Gunakan tombol di atas jika koleksi `users` di Firebase Anda masih kosong.</p>
                 </div>
             </div>
         </div>
@@ -81,6 +83,7 @@
                             <span class="text-xs text-slate-400">Teknologi Elektro</span>
                         </div>
                     </div>
+                    <!-- NAV MENU UTAMA -->
                     <nav class="p-3 space-y-1 text-sm font-medium" id="sidebar-menu"></nav>
                 </div>
 
@@ -134,7 +137,11 @@
 
         let currentUser = null;
 
-        // Cek Koneksi Real-time ke Firestore
+        function hasAnyRole(allowedRoles) {
+            if (!currentUser || !currentUser.roles) return false;
+            return currentUser.roles.some(role => allowedRoles.includes(role));
+        }
+
         async function checkFirebaseConnection() {
             const statusDiv = document.getElementById('db-status');
             try {
@@ -145,11 +152,10 @@
             } catch (err) {
                 console.error("Firestore connection error:", err);
                 statusDiv.className = "mb-5 p-2.5 rounded-lg bg-red-50 text-red-700 text-xs font-semibold flex items-center justify-between border border-red-200";
-                statusDiv.innerHTML = `<span><i class="fa-solid fa-triangle-exclamation mr-2"></i> Akses DB Ditolak / Belum Diizinkan di Firebase Console.</span>`;
+                statusDiv.innerHTML = `<span><i class="fa-solid fa-triangle-exclamation mr-2"></i> Firestore Belum Diizinkan di Console.</span>`;
             }
         }
 
-        // Auto Seed Data Demo ke Firestore
         window.seedDatabase = async function() {
             const btn = document.getElementById('btn-seed');
             btn.disabled = true;
@@ -158,6 +164,9 @@
             const demoUsers = [
                 { username: "kaprodi", password: "123", full_name: "Mohammad Nur, S.Si., M.T.", roles: ["kaprodi", "dosen"], prodi: "D4 Teknik Otomasi" },
                 { username: "kajur", password: "123", full_name: "Dr. Eng. Ahmad, S.T., M.T.", roles: ["kajur", "dosen"], prodi: "Jurusan Teknologi Elektro" },
+                { username: "sekjur", password: "123", full_name: "Siti Aminah, S.T., M.T.", roles: ["sekjur", "dosen"], prodi: "Jurusan Teknologi Elektro" },
+                { username: "dosen", password: "123", full_name: "Dedi Suherman, M.Tr.T.", roles: ["dosen"], prodi: "D3 Teknik Listrik" },
+                { username: "tendik", password: "123", full_name: "Bambang Prasetyo, S.Kom.", roles: ["tendik"], prodi: "Jurusan Teknologi Elektro" },
                 { username: "admin", password: "123", full_name: "Administrator Jurusan, S.T.", roles: ["admin", "dosen"], prodi: "Jurusan Teknologi Elektro" }
             ];
 
@@ -165,13 +174,13 @@
                 for (const u of demoUsers) {
                     await addDoc(collection(db, "users"), u);
                 }
-                alert("Berhasil mengisi data demo ke Firestore! Sekarang Anda bisa login menggunakan username 'kaprodi' / '123'.");
+                alert("Berhasil memasukkan data demo multi-role ke Firebase!");
                 checkFirebaseConnection();
             } catch (e) {
-                alert("Gagal mengisi data: " + e.message + ". Pastikan Security Rules di Firebase Console sudah diset ke allow read, write: if true;");
+                alert("Gagal mengisi data: " + e.message);
             } finally {
                 btn.disabled = false;
-                btn.innerHTML = '<i class="fa-solid fa-database mr-1"></i> Isi Firestore dengan Data Demo Awal';
+                btn.innerHTML = '<i class="fa-solid fa-database mr-1"></i> Isi/Reset Firestore Data Demo Multi-Role';
             }
         };
 
@@ -192,7 +201,7 @@
             const btnLogin = document.getElementById('btn-login');
 
             btnLogin.disabled = true;
-            btnLogin.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i> Memeriksa DB Firebase...';
+            btnLogin.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i> Memeriksa DB...';
 
             try {
                 const q = query(collection(db, "users"), where("username", "==", u), where("password", "==", p));
@@ -221,6 +230,56 @@
             document.getElementById('login-view').classList.remove('hidden');
         };
 
+        // RENDER SIDEBAR LENGKAP SIFAT MULTI-ROLE
+        function renderSidebar() {
+            const menu = document.getElementById('sidebar-menu');
+            let items = [];
+
+            // 1. Menu Umum
+            items.push({ id: 'overview', label: 'Dashboard Overview', icon: 'fa-chart-pie' });
+            items.push({ id: 'documents', label: 'Dokumen Jurusan', icon: 'fa-folder-open' });
+
+            // 2. Menu Jika Memiliki Role Dosen
+            if (hasAnyRole(['dosen'])) {
+                items.push({ id: 'my_schedules', label: 'Jadwal Mengajar Saya', icon: 'fa-calendar-user' });
+                items.push({ id: 'my_bkd', label: 'BKD Personal', icon: 'fa-user-clock' });
+                items.push({ id: 'research', label: 'Penelitian & PKM', icon: 'fa-flask' });
+                items.push({ id: 'outputs', label: 'Luaran Research & PKM', icon: 'fa-book-bookmark' });
+            }
+
+            // 3. Menu Jika Memiliki Role Kaprodi
+            if (hasAnyRole(['kaprodi'])) {
+                items.push({ id: 'manage_schedules', label: 'Plotting Jadwal Prodi', icon: 'fa-calendar-days' });
+                items.push({ id: 'achievements', label: 'Prestasi Mhs Prodi', icon: 'fa-trophy' });
+                items.push({ id: 'prodi_bkd', label: 'Rekap BKD Prodi', icon: 'fa-chart-simple' });
+            }
+
+            // 4. Menu Jika Memiliki Role Kajur / Sekjur
+            if (hasAnyRole(['kajur', 'sekjur'])) {
+                items.push({ id: 'achievements', label: 'Verifikasi Prestasi', icon: 'fa-trophy' });
+                items.push({ id: 'monitoring_bkd', label: 'Monitoring BKD Jurusan', icon: 'fa-chart-bar' });
+                items.push({ id: 'recap_tridharma', label: 'Laporan Tridharma', icon: 'fa-file-invoice' });
+            }
+
+            // 5. Menu Jika Memiliki Role Tendik
+            if (hasAnyRole(['tendik'])) {
+                items.push({ id: 'my_vault', label: 'Dokumen & Sertifikasi', icon: 'fa-vault' });
+            }
+
+            // 6. Menu Jika Memiliki Role Admin System
+            if (hasAnyRole(['admin'])) {
+                items.push({ id: 'users', label: 'Manajemen User', icon: 'fa-users-gear' });
+                items.push({ id: 'audit_logs', label: 'Audit Log Sistem', icon: 'fa-shield-halved' });
+            }
+
+            menu.innerHTML = items.map(item => `
+                <button onclick="navigate('${item.id}')" class="w-full flex items-center space-x-3 px-3 py-2.5 rounded-lg transition hover:bg-slate-800 text-left">
+                    <i class="fa-solid ${item.icon} w-5 text-indigo-400"></i>
+                    <span>${item.label}</span>
+                </button>
+            `).join('');
+        }
+
         function showDashboard() {
             document.getElementById('login-view').classList.add('hidden');
             document.getElementById('dashboard-view').classList.remove('hidden');
@@ -238,23 +297,6 @@
             navigate('overview');
         }
 
-        function renderSidebar() {
-            const menu = document.getElementById('sidebar-menu');
-            let items = [
-                { id: 'overview', label: 'Dashboard', icon: 'fa-chart-pie' },
-                { id: 'documents', label: 'Dokumen Jurusan', icon: 'fa-folder-open' },
-                { id: 'my_schedules', label: 'Jadwal Mengajar Saya', icon: 'fa-calendar-user' },
-                { id: 'my_bkd', label: 'BKD Personal', icon: 'fa-user-clock' }
-            ];
-
-            menu.innerHTML = items.map(item => `
-                <button onclick="navigate('${item.id}')" class="w-full flex items-center space-x-3 px-3 py-2.5 rounded-lg transition hover:bg-slate-800 text-left">
-                    <i class="fa-solid ${item.icon} w-5 text-indigo-400"></i>
-                    <span>${item.label}</span>
-                </button>
-            `).join('');
-        }
-
         window.navigate = function(pageId) {
             const container = document.getElementById('main-content');
             const title = document.getElementById('page-title');
@@ -262,14 +304,48 @@
             if (pageId === 'overview') {
                 title.textContent = "Dashboard Summary";
                 container.innerHTML = `
-                    <div class="p-4 bg-emerald-50 border border-emerald-200 rounded-xl mb-6">
-                        <h4 class="font-bold text-emerald-900">Koneksi Database Firebase Berhasil!</h4>
-                        <p class="text-xs text-emerald-700 mt-1">Anda terautentikasi langsung dari Cloud Firestore `sim-jte` sebagai <b>${currentUser.full_name}</b> (${currentUser.roles.join(', ').toUpperCase()}).</p>
+                    <div class="p-4 bg-indigo-50 border border-indigo-200 rounded-xl mb-6 flex items-center justify-between">
+                        <div>
+                            <h4 class="font-bold text-indigo-900">Akses Terhubung Firebase Real-time</h4>
+                            <p class="text-xs text-indigo-700 mt-1">Sistem mengenali role: <b>${currentUser.roles.join(', ').toUpperCase()}</b>.</p>
+                        </div>
+                        <span class="px-3 py-1 bg-emerald-600 text-white rounded-lg text-xs font-semibold">Ready</span>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-4 gap-5 mb-6">
+                        <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
+                            <div>
+                                <p class="text-xs font-semibold text-slate-500 uppercase">Jadwal Saya</p>
+                                <p class="text-2xl font-bold text-slate-800 mt-1">12 SKS</p>
+                            </div>
+                            <div class="w-12 h-12 bg-blue-50 text-blue-600 rounded-lg flex items-center justify-center text-xl"><i class="fa-solid fa-clock"></i></div>
+                        </div>
+                        <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
+                            <div>
+                                <p class="text-xs font-semibold text-slate-500 uppercase">Dokumen Resmi</p>
+                                <p class="text-2xl font-bold text-slate-800 mt-1">148</p>
+                            </div>
+                            <div class="w-12 h-12 bg-emerald-50 text-emerald-600 rounded-lg flex items-center justify-center text-xl"><i class="fa-solid fa-file-contract"></i></div>
+                        </div>
+                        <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
+                            <div>
+                                <p class="text-xs font-semibold text-slate-500 uppercase">Prestasi Mhs</p>
+                                <p class="text-2xl font-bold text-slate-800 mt-1">45</p>
+                            </div>
+                            <div class="w-12 h-12 bg-amber-50 text-amber-600 rounded-lg flex items-center justify-center text-xl"><i class="fa-solid fa-award"></i></div>
+                        </div>
+                        <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
+                            <div>
+                                <p class="text-xs font-semibold text-slate-500 uppercase">Riset & PKM</p>
+                                <p class="text-2xl font-bold text-slate-800 mt-1">3 Aktif</p>
+                            </div>
+                            <div class="w-12 h-12 bg-purple-50 text-purple-600 rounded-lg flex items-center justify-center text-xl"><i class="fa-solid fa-flask"></i></div>
+                        </div>
                     </div>
                 `;
             } else {
                 title.textContent = pageId.replace('_', ' ').toUpperCase();
-                container.innerHTML = `<div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">Modul <b>${pageId}</b> terhubung aktif dengan database Firebase.</div>`;
+                container.innerHTML = `<div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">Modul <b>${pageId}</b> siap digunakan sesuai kewenangan role.</div>`;
             }
         };
     </script>
