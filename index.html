@@ -40,7 +40,7 @@
                             <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">
                                 <i class="fa-solid fa-user"></i>
                             </span>
-                            <input type="text" id="login-username" required class="w-full pl-10 pr-4 py-2.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition" placeholder="Masukkan username">
+                            <input type="text" id="login-username" required class="w-full pl-10 pr-4 py-2.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition" placeholder="Masukkan username terdaftar">
                         </div>
                     </div>
 
@@ -66,7 +66,7 @@
                 <!-- HELPER SEED BUTTON -->
                 <div class="mt-6 border-t pt-4 text-center">
                     <button onclick="seedDatabase()" id="btn-seed" class="text-xs bg-slate-100 hover:bg-slate-200 text-slate-700 py-2 px-3 rounded-md font-medium transition">
-                        <i class="fa-solid fa-database mr-1"></i> Isi/Reset Firestore Data Demo Multi-Role
+                        <i class="fa-solid fa-database mr-1"></i> Isi Firestore dengan Sample Data User
                     </button>
                 </div>
             </div>
@@ -92,7 +92,8 @@
                         <div class="w-9 h-9 rounded-full bg-indigo-600 text-white flex items-center justify-center font-bold shrink-0" id="user-avatar">U</div>
                         <div class="overflow-hidden">
                             <p class="text-sm font-semibold text-white truncate" id="user-display-name">User Name</p>
-                            <div class="flex flex-wrap gap-1 mt-1" id="user-roles-badges"></div>
+                            <p class="text-[11px] text-slate-400 truncate" id="user-username">@username</p>
+                            <div class="flex flex-wrap gap-1 mt-1.5" id="user-roles-badges"></div>
                         </div>
                     </div>
                     <button onclick="handleLogout()" class="w-full py-2 px-3 bg-red-600/20 hover:bg-red-600 text-red-300 hover:text-white rounded-lg text-xs font-semibold flex items-center justify-center space-x-2 transition">
@@ -156,31 +157,31 @@
             }
         }
 
+        // Contoh Data User dengan Username Pendaftaran Dinamis
         window.seedDatabase = async function() {
             const btn = document.getElementById('btn-seed');
             btn.disabled = true;
             btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1"></i> Mengisi Data...';
 
-            const demoUsers = [
-                { username: "kaprodi", password: "123", full_name: "Mohammad Nur, S.Si., M.T.", roles: ["kaprodi", "dosen"], prodi: "D4 Teknik Otomasi" },
-                { username: "kajur", password: "123", full_name: "Dr. Eng. Ahmad, S.T., M.T.", roles: ["kajur", "dosen"], prodi: "Jurusan Teknologi Elektro" },
-                { username: "sekjur", password: "123", full_name: "Siti Aminah, S.T., M.T.", roles: ["sekjur", "dosen"], prodi: "Jurusan Teknologi Elektro" },
-                { username: "dosen", password: "123", full_name: "Dedi Suherman, M.Tr.T.", roles: ["dosen"], prodi: "D3 Teknik Listrik" },
-                { username: "tendik", password: "123", full_name: "Bambang Prasetyo, S.Kom.", roles: ["tendik"], prodi: "Jurusan Teknologi Elektro" },
-                { username: "admin", password: "123", full_name: "Administrator Jurusan, S.T.", roles: ["admin", "dosen"], prodi: "Jurusan Teknologi Elektro" }
+            const sampleUsers = [
+                { username: "mnur", password: "123", full_name: "Mohammad Nur, S.Si., M.T.", nip_nidn: "198501012010121001", roles: ["kaprodi", "dosen"], prodi: "D4 Teknik Otomasi" },
+                { username: "ahmad_kajur", password: "123", full_name: "Dr. Eng. Ahmad, S.T., M.T.", nip_nidn: "197802022005011002", roles: ["kajur", "dosen"], prodi: "Jurusan Teknologi Elektro" },
+                { username: "siti_sekjur", password: "123", full_name: "Siti Aminah, S.T., M.T.", nip_nidn: "198803032015042001", roles: ["sekjur", "dosen"], prodi: "Jurusan Teknologi Elektro" },
+                { username: "dedi_dosen", password: "123", full_name: "Dedi Suherman, M.Tr.T.", nip_nidn: "199004042019031003", roles: ["dosen"], prodi: "D3 Teknik Listrik" },
+                { username: "bambang_admin", password: "123", full_name: "Bambang Prasetyo, S.Kom.", nip_nidn: "199205052020011004", roles: ["admin", "tendik"], prodi: "Jurusan Teknologi Elektro" }
             ];
 
             try {
-                for (const u of demoUsers) {
+                for (const u of sampleUsers) {
                     await addDoc(collection(db, "users"), u);
                 }
-                alert("Berhasil memasukkan data demo multi-role ke Firebase!");
+                alert("Berhasil memasukkan data user terdaftar ke Firestore! Coba login dengan username 'mnur' / pass '123'.");
                 checkFirebaseConnection();
             } catch (e) {
                 alert("Gagal mengisi data: " + e.message);
             } finally {
                 btn.disabled = false;
-                btn.innerHTML = '<i class="fa-solid fa-database mr-1"></i> Isi/Reset Firestore Data Demo Multi-Role';
+                btn.innerHTML = '<i class="fa-solid fa-database mr-1"></i> Isi Firestore dengan Sample Data User';
             }
         };
 
@@ -193,6 +194,7 @@
             }
         });
 
+        // Autentikasi berdasarkan Username terdaftar
         window.handleLogin = async function(e) {
             e.preventDefault();
             const u = document.getElementById('login-username').value.trim();
@@ -230,7 +232,6 @@
             document.getElementById('login-view').classList.remove('hidden');
         };
 
-        // RENDER SIDEBAR LENGKAP SIFAT MULTI-ROLE
         function renderSidebar() {
             const menu = document.getElementById('sidebar-menu');
             let items = [];
@@ -268,7 +269,7 @@
 
             // 6. Menu Jika Memiliki Role Admin System
             if (hasAnyRole(['admin'])) {
-                items.push({ id: 'users', label: 'Manajemen User', icon: 'fa-users-gear' });
+                items.push({ id: 'users', label: 'Manajemen User & Role', icon: 'fa-users-gear' });
                 items.push({ id: 'audit_logs', label: 'Audit Log Sistem', icon: 'fa-shield-halved' });
             }
 
@@ -285,6 +286,7 @@
             document.getElementById('dashboard-view').classList.remove('hidden');
 
             document.getElementById('user-display-name').textContent = currentUser.full_name;
+            document.getElementById('user-username').textContent = `@${currentUser.username}`;
             document.getElementById('user-avatar').textContent = currentUser.full_name.charAt(0);
             document.getElementById('user-context-info').textContent = `Unit: ${currentUser.prodi}`;
 
@@ -306,10 +308,10 @@
                 container.innerHTML = `
                     <div class="p-4 bg-indigo-50 border border-indigo-200 rounded-xl mb-6 flex items-center justify-between">
                         <div>
-                            <h4 class="font-bold text-indigo-900">Akses Terhubung Firebase Real-time</h4>
-                            <p class="text-xs text-indigo-700 mt-1">Sistem mengenali role: <b>${currentUser.roles.join(', ').toUpperCase()}</b>.</p>
+                            <h4 class="font-bold text-indigo-900">Selamat Datang, ${currentUser.full_name}!</h4>
+                            <p class="text-xs text-indigo-700 mt-1">Username: <b>@${currentUser.username}</b> | Hak Akses Role: <b>${currentUser.roles.join(', ').toUpperCase()}</b>.</p>
                         </div>
-                        <span class="px-3 py-1 bg-emerald-600 text-white rounded-lg text-xs font-semibold">Ready</span>
+                        <span class="px-3 py-1 bg-emerald-600 text-white rounded-lg text-xs font-semibold">Active Session</span>
                     </div>
 
                     <div class="grid grid-cols-1 md:grid-cols-4 gap-5 mb-6">
@@ -340,6 +342,18 @@
                                 <p class="text-2xl font-bold text-slate-800 mt-1">3 Aktif</p>
                             </div>
                             <div class="w-12 h-12 bg-purple-50 text-purple-600 rounded-lg flex items-center justify-center text-xl"><i class="fa-solid fa-flask"></i></div>
+                        </div>
+                    </div>
+                `;
+            } else if (pageId === 'users') {
+                title.textContent = "Manajemen User & Role";
+                container.innerHTML = `
+                    <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
+                        <h3 class="font-bold text-slate-800 mb-2">Pendaftaran & Pengaturan User Terdaftar</h3>
+                        <p class="text-xs text-slate-500 mb-4">Username ditentukan saat pendaftaran user baru. Setiap user dapat diberikan satu atau beberapa role sekaligus.</p>
+                        <div class="p-4 bg-slate-50 rounded-lg border border-slate-200 text-xs">
+                            <p><b>Struktur Firestore Collection:</b> <code>users/{userId}</code></p>
+                            <p class="mt-1"><code>{ username: "kustom_user", password: "...", full_name: "...", roles: ["dosen", "kaprodi"] }</code></p>
                         </div>
                     </div>
                 `;
