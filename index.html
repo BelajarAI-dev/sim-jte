@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SIM-JTE | Sistem Manajemen Administrasi Jurusan Teknologi Elektro</title>
+    <title>SIM-JTE | Program BATERAI Terintegrasi</title>
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- FontAwesome CDN -->
@@ -22,13 +22,13 @@
             <div class="bg-white w-full max-w-md rounded-2xl shadow-2xl p-8 border border-slate-200">
                 <div class="text-center mb-6">
                     <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-indigo-100 text-indigo-600 mb-4">
-                        <i class="fa-solid fa-microchip text-3xl"></i>
+                        <i class="fa-solid fa-bolt text-3xl"></i>
                     </div>
                     <h1 class="text-2xl font-bold text-slate-900">SIM-JTE System</h1>
-                    <p class="text-sm text-slate-500 mt-1">Jurusan Teknologi Elektro</p>
+                    <p class="text-xs text-slate-500 mt-1">Jurusan Teknologi Elektro</p>
                 </div>
 
-                <!-- FIREBASE CONNECTION STATUS BADGE -->
+                <!-- DB CONNECTION STATUS -->
                 <div id="db-status" class="mb-5 p-2.5 rounded-lg bg-amber-50 text-amber-700 text-xs font-semibold flex items-center justify-between border border-amber-200">
                     <span><i class="fa-solid fa-spinner fa-spin mr-2"></i> Menghubungkan ke Database Firestore...</span>
                 </div>
@@ -40,7 +40,7 @@
                             <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">
                                 <i class="fa-solid fa-user"></i>
                             </span>
-                            <input type="text" id="login-username" required class="w-full pl-10 pr-4 py-2.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition text-sm" placeholder="Masukkan username terdaftar">
+                            <input type="text" id="login-username" required class="w-full pl-10 pr-4 py-2.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition text-sm" placeholder="Username terdaftar">
                         </div>
                     </div>
 
@@ -55,7 +55,7 @@
                     </div>
 
                     <div id="login-error" class="hidden p-3 rounded-lg bg-red-50 text-red-600 text-xs font-medium border border-red-200">
-                        Username atau password tidak cocok / tidak ditemukan di database.
+                        Username atau password tidak ditemukan / salah.
                     </div>
 
                     <button type="submit" id="btn-login" class="w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-lg shadow-md hover:shadow-lg transition duration-200">
@@ -113,9 +113,7 @@
 
     <!-- GLOBAL MODAL CONTAINER -->
     <div id="modal-container" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4">
-        <div class="bg-white rounded-2xl shadow-2xl max-w-lg w-full overflow-hidden border border-slate-200 transform transition-all" id="modal-content">
-            <!-- Dynamic Modal Content Inserted Here -->
-        </div>
+        <div class="bg-white rounded-2xl shadow-2xl max-w-lg w-full overflow-hidden border border-slate-200 transform transition-all" id="modal-content"></div>
     </div>
 
     <!-- FIREBASE MODULE LOGIC -->
@@ -149,11 +147,11 @@
                 const q = query(collection(db, "users"));
                 await getDocs(q);
                 statusDiv.className = "mb-5 p-2.5 rounded-lg bg-emerald-50 text-emerald-700 text-xs font-semibold flex items-center justify-between border border-emerald-200";
-                statusDiv.innerHTML = '<span><i class="fa-solid fa-circle-check mr-2"></i> Cloud Firestore DB Terhubung</span>';
+                statusDiv.innerHTML = '<span><i class="fa-solid fa-circle-check mr-2"></i> Cloud Firestore Terhubung</span>';
             } catch (err) {
-                console.error("Firestore Error:", err);
-                statusDiv.className = "mb-5 p-2.5 rounded-lg bg-red-50 text-red-700 text-xs font-semibold flex items-center justify-between border border-red-200";
-                statusDiv.innerHTML = `<span><i class="fa-solid fa-triangle-exclamation mr-2"></i> Koneksi Firestore Gagal / Belum Diizinkan.</span>`;
+                console.error(err);
+                statusDiv.className = "mb-5 p-2.5 rounded-lg bg-red-50 text-red-700 text-xs font-semibold border border-red-200";
+                statusDiv.innerHTML = `<span><i class="fa-solid fa-triangle-exclamation mr-2"></i> Firestore Gagal Terhubung.</span>`;
             }
         }
 
@@ -174,7 +172,7 @@
             const btnLogin = document.getElementById('btn-login');
 
             btnLogin.disabled = true;
-            btnLogin.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i> Memeriksa Database...';
+            btnLogin.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i> Autentikasi...';
 
             try {
                 const q = query(collection(db, "users"), where("username", "==", u), where("password", "==", p));
@@ -189,7 +187,7 @@
                     errDiv.classList.remove('hidden');
                 }
             } catch (error) {
-                alert("Gagal melakukan autentikasi database: " + error.message);
+                alert("Gagal autentikasi: " + error.message);
             } finally {
                 btnLogin.disabled = false;
                 btnLogin.innerText = 'Masuk ke Sistem';
@@ -214,33 +212,26 @@
                 items.push({ id: 'my_schedules', label: 'Jadwal Mengajar Saya', icon: 'fa-calendar-user' });
                 items.push({ id: 'my_bkd', label: 'BKD Personal', icon: 'fa-user-clock' });
                 items.push({ id: 'research', label: 'Penelitian & PKM', icon: 'fa-flask' });
-                items.push({ id: 'outputs', label: 'Luaran Research & PKM', icon: 'fa-book-bookmark' });
             }
 
-            // MENU PROGRAM HIBAH BATERAI (DOSEN & TENDIK)
-            if (hasAnyRole(['dosen', 'tendik'])) {
+            // MENU PROGRAM BATERAI
+            if (hasAnyRole(['dosen', 'tendik', 'admin', 'superadmin'])) {
                 items.push({ id: 'baterai_program', label: 'Program BATERAI', icon: 'fa-hand-holding-hand' });
             }
 
             if (hasAnyRole(['kaprodi'])) {
                 items.push({ id: 'manage_schedules', label: 'Plotting Jadwal Prodi', icon: 'fa-calendar-days' });
                 items.push({ id: 'achievements', label: 'Prestasi Mhs Prodi', icon: 'fa-trophy' });
-                items.push({ id: 'prodi_bkd', label: 'Rekap BKD Prodi', icon: 'fa-chart-simple' });
             }
 
-            if (hasAnyRole(['kajur', 'sekjur'])) {
-                items.push({ id: 'achievements', label: 'Verifikasi Prestasi', icon: 'fa-trophy' });
-                items.push({ id: 'monitoring_bkd', label: 'Monitoring BKD Jurusan', icon: 'fa-chart-bar' });
-                items.push({ id: 'recap_tridharma', label: 'Laporan Tridharma', icon: 'fa-file-invoice' });
-            }
-
-            if (hasAnyRole(['tendik'])) {
-                items.push({ id: 'my_vault', label: 'Dokumen & Sertifikasi', icon: 'fa-vault' });
-            }
-
-            if (hasAnyRole(['admin'])) {
+            if (hasAnyRole(['admin', 'superadmin'])) {
                 items.push({ id: 'users', label: 'Manajemen User & Role', icon: 'fa-users-gear' });
-                items.push({ id: 'audit_logs', label: 'Audit Log Sistem', icon: 'fa-shield-halved' });
+            }
+
+            // MENU KHUSUS SUPERADMIN
+            if (hasAnyRole(['superadmin'])) {
+                items.push({ id: 'periode_beasiswa', label: 'Master Periode Beasiswa', icon: 'fa-calendar-range' });
+                items.push({ id: 'master_prodi', label: 'Master Prodi', icon: 'fa-sitemap' });
             }
 
             menu.innerHTML = items.map(item => `
@@ -255,13 +246,13 @@
             document.getElementById('login-view').classList.add('hidden');
             document.getElementById('dashboard-view').classList.remove('hidden');
 
-            document.getElementById('user-display-name').textContent = currentUser.full_name;
+            document.getElementById('user-display-name').textContent = currentUser.full_name || currentUser.nama;
             document.getElementById('user-username').textContent = `@${currentUser.username}`;
             document.getElementById('user-avatar').textContent = currentUser.full_name ? currentUser.full_name.charAt(0) : 'U';
             document.getElementById('user-context-info').textContent = `Unit: ${currentUser.prodi || 'Jurusan'}`;
 
             const badgeContainer = document.getElementById('user-roles-badges');
-            badgeContainer.innerHTML = (currentUser.roles || []).map(r => `
+            badgeContainer.innerHTML = (currentUser.roles || [currentUser.role]).map(r => `
                 <span class="px-2 py-0.5 rounded bg-indigo-900/80 text-indigo-200 text-[10px] font-bold uppercase tracking-wider border border-indigo-700/50">${r}</span>
             `).join('');
 
@@ -278,7 +269,7 @@
             document.getElementById('modal-container').classList.remove('hidden');
         };
 
-        // ROUTER & FIRESTORE LIVE DATA RENDERERS
+        // ROUTER & LIVE DATA RENDERERS
         window.navigate = async function(pageId) {
             const container = document.getElementById('main-content');
             const title = document.getElementById('page-title');
@@ -288,8 +279,8 @@
                 container.innerHTML = `
                     <div class="p-4 bg-indigo-50 border border-indigo-200 rounded-xl mb-6 flex items-center justify-between">
                         <div>
-                            <h4 class="font-bold text-indigo-900">Selamat Datang, ${currentUser.full_name}!</h4>
-                            <p class="text-xs text-indigo-700 mt-1">Username: <b>@${currentUser.username}</b> | Hak Akses Role: <b>${(currentUser.roles || []).join(', ').toUpperCase()}</b>.</p>
+                            <h4 class="font-bold text-indigo-900">Selamat Datang, ${currentUser.full_name || currentUser.nama}!</h4>
+                            <p class="text-xs text-indigo-700 mt-1">Username: <b>@${currentUser.username}</b> | Hak Akses Role: <b>${(currentUser.roles || [currentUser.role]).join(', ').toUpperCase()}</b>.</p>
                         </div>
                         <span class="px-3 py-1 bg-emerald-600 text-white rounded-lg text-xs font-semibold">Active Session</span>
                     </div>
@@ -302,7 +293,7 @@
                 try {
                     const docsSnap = await getDocs(collection(db, "documents_official"));
                     const achSnap = await getDocs(collection(db, "achievements"));
-                    const resSnap = await getDocs(collection(db, "research"));
+                    const resSnap = await getDocs(collection(db, "baterai_grants"));
 
                     document.getElementById('overview-metrics').innerHTML = `
                         <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
@@ -321,10 +312,10 @@
                         </div>
                         <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
                             <div>
-                                <p class="text-xs font-semibold text-slate-500 uppercase">Riset & PKM</p>
+                                <p class="text-xs font-semibold text-slate-500 uppercase">Beasiswa BATERAI</p>
                                 <p class="text-2xl font-bold text-slate-800 mt-1">${resSnap.size}</p>
                             </div>
-                            <div class="w-12 h-12 bg-purple-50 text-purple-600 rounded-lg flex items-center justify-center text-xl"><i class="fa-solid fa-flask"></i></div>
+                            <div class="w-12 h-12 bg-purple-50 text-purple-600 rounded-lg flex items-center justify-center text-xl"><i class="fa-solid fa-hand-holding-hand"></i></div>
                         </div>
                         <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
                             <div>
@@ -337,101 +328,150 @@
                 } catch(e) { console.error(e); }
 
             } else if (pageId === 'baterai_program') {
-                title.textContent = "Program Hibah BATERAI";
+                title.textContent = "BATERAI (Beasiswa Akademis Teknologi Elektro untuk Riset & Akselerasi Inovatif)";
+                
+                let adminActionPanel = '';
+                if (hasAnyRole(['admin', 'superadmin'])) {
+                    adminActionPanel = `
+                        <div class="mt-4 pt-4 border-t border-indigo-500/30 flex flex-wrap gap-2">
+                            <button onclick="openInputIuranModal()" class="px-3 py-1.5 bg-emerald-500 hover:bg-emerald-600 text-white rounded text-xs font-semibold">+ Input Iuran/Rapel</button>
+                            <button onclick="openPencairanModal()" class="px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-white rounded text-xs font-semibold">+ Pencairan Beasiswa</button>
+                        </div>
+                    `;
+                }
+
                 container.innerHTML = `
-                    <div class="p-5 bg-gradient-to-r from-indigo-900 to-indigo-700 text-white rounded-2xl shadow-md mb-6">
+                    <div class="p-5 bg-gradient-to-r from-indigo-900 to-indigo-800 text-white rounded-2xl shadow-md mb-6">
                         <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                             <div>
-                                <span class="px-2.5 py-1 bg-indigo-500/30 border border-indigo-400/40 rounded-full text-[11px] font-bold uppercase tracking-wider text-indigo-200">Bantuan Swadaya Sivitas</span>
-                                <h2 class="text-xl font-bold mt-1">BATERAI</h2>
-                                <p class="text-xs text-indigo-100 mt-0.5">Bantuan Akademik Teknologi Elektro untuk Riset Akselerasi dan Inovasi Mahasiswa (Sumber Dana: Iuran Dosen & Tendik).</p>
+                                <span class="px-2.5 py-1 bg-indigo-500/30 border border-indigo-400/40 rounded-full text-[11px] font-bold uppercase tracking-wider text-indigo-200">Dana Swadaya Dosen & Tendik JTE</span>
+                                <h2 class="text-xl font-bold mt-1">BATERAI JTE</h2>
+                                <p class="text-xs text-indigo-100 mt-0.5">Beasiswa Akademis Teknologi Elektro untuk Riset & Akselerasi Inovatif Mahasiswa.</p>
                             </div>
-                            <button onclick="openAddBateraiGrantModal()" class="px-4 py-2 bg-white text-indigo-900 hover:bg-indigo-50 font-semibold rounded-lg text-xs transition shadow flex items-center space-x-2">
-                                <i class="fa-solid fa-plus-circle text-indigo-600"></i>
-                                <span>Ajukan Bantuan Riset Mhs</span>
-                            </button>
+                            <div class="bg-white/10 backdrop-blur-md p-3 rounded-xl border border-white/20 text-xs text-right">
+                                <p class="text-indigo-200 font-semibold"><i class="fa-solid fa-building-columns mr-1"></i> Rekening Iuran Mandiri</p>
+                                <p class="font-bold text-base text-yellow-300">1400020926979</p>
+                                <p class="text-[11px]">a.n. Siti Aminah</p>
+                            </div>
                         </div>
+                        ${adminActionPanel}
                     </div>
 
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-5 mb-6">
                         <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
-                            <p class="text-xs font-semibold text-slate-500 uppercase">Total Dana Swadaya Terkumpul</p>
-                            <p class="text-2xl font-bold text-indigo-600 mt-1">Rp 24.500.000</p>
-                            <p class="text-[11px] text-slate-400 mt-1">Dari Iuran Rutin Dosen & Tendik JTE</p>
+                            <p class="text-xs font-semibold text-slate-500 uppercase">Total Kas Iuran Masuk</p>
+                            <p class="text-2xl font-bold text-indigo-600 mt-1" id="bat-total-masuk">Rp 0</p>
                         </div>
                         <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
-                            <p class="text-xs font-semibold text-slate-500 uppercase">Dana Tersalurkan ke Mhs</p>
-                            <p class="text-2xl font-bold text-emerald-600 mt-1">Rp 16.000.000</p>
-                            <p class="text-[11px] text-emerald-600 mt-1 font-semibold"><i class="fa-solid fa-check-circle mr-1"></i>8 Proyek Inovasi Didanai</p>
+                            <p class="text-xs font-semibold text-slate-500 uppercase">Total Pencairan Beasiswa</p>
+                            <p class="text-2xl font-bold text-emerald-600 mt-1" id="bat-total-keluar">Rp 0</p>
                         </div>
                         <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
-                            <p class="text-xs font-semibold text-slate-500 uppercase">Proposal Menunggu Verifikasi</p>
-                            <p class="text-2xl font-bold text-amber-600 mt-1">3 Proposal</p>
-                            <p class="text-[11px] text-amber-600 mt-1 font-semibold"><i class="fa-solid fa-clock mr-1"></i>Akselerasi Riset TA / Lomba</p>
+                            <p class="text-xs font-semibold text-slate-500 uppercase">Saldo Kas BATERAI</p>
+                            <p class="text-2xl font-bold text-amber-600 mt-1" id="bat-saldo-kas">Rp 0</p>
                         </div>
                     </div>
 
                     <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
-                        <h3 class="font-bold text-slate-800 text-sm mb-4">Daftar Pengajuan Bantuan Riset & Inovasi Mahasiswa</h3>
+                        <h3 class="font-bold text-slate-800 text-sm mb-4">Riwayat Beasiswa & Pencairan Mahasiswa</h3>
                         <div class="overflow-x-auto">
                             <table class="w-full text-left border-collapse text-xs">
                                 <thead>
                                     <tr class="bg-slate-100 border-b border-slate-200 text-slate-600 font-semibold">
-                                        <th class="p-3">Judul Inovasi / Riset Mhs</th>
-                                        <th class="p-3">Mahasiswa Penerima</th>
-                                        <th class="p-3">Dosen/Tendik Pembimbing</th>
-                                        <th class="p-3">Usulan Dana</th>
-                                        <th class="p-3">Status Verifikasi</th>
+                                        <th class="p-3">NRP & Nama Mahasiswa</th>
+                                        <th class="p-3">Program Studi</th>
+                                        <th class="p-3">Periode Akademik</th>
+                                        <th class="p-3">Nominal Beasiswa</th>
                                     </tr>
                                 </thead>
                                 <tbody id="baterai-table-body" class="divide-y divide-slate-100">
-                                    <tr><td colspan="5" class="p-4 text-center text-slate-400">Mengambil data BATERAI dari Firestore...</td></tr>
+                                    <tr><td colspan="4" class="p-4 text-center text-slate-400">Memuat data BATERAI...</td></tr>
                                 </tbody>
                             </table>
                         </div>
                     </div>
                 `;
 
-                // Query Firestore Collection: baterai_grants
+                // Load data BATERAI dari Firestore
                 try {
-                    const snap = await getDocs(collection(db, "baterai_grants"));
+                    const iuranSnap = await getDocs(collection(db, "baterai_iuran"));
+                    const alokasiSnap = await getDocs(collection(db, "baterai_alokasi"));
+
+                    let totalMasuk = 0;
+                    iuranSnap.forEach(doc => { totalMasuk += Number(doc.data().jumlah || 0); });
+
+                    let totalKeluar = 0;
+                    alokasiSnap.forEach(doc => { totalKeluar += Number(doc.data().nominal || 0); });
+
+                    document.getElementById('bat-total-masuk').textContent = `Rp ${totalMasuk.toLocaleString('id-ID')}`;
+                    document.getElementById('bat-total-keluar').textContent = `Rp ${totalKeluar.toLocaleString('id-ID')}`;
+                    document.getElementById('bat-saldo-kas').textContent = `Rp ${(totalMasuk - totalKeluar).toLocaleString('id-ID')}`;
+
                     const tbody = document.getElementById('baterai-table-body');
+                    if (alokasiSnap.empty) {
+                        tbody.innerHTML = `<tr><td colspan="4" class="p-4 text-center text-slate-400">Belum ada riwayat pencairan beasiswa.</td></tr>`;
+                    } else {
+                        tbody.innerHTML = alokasiSnap.docs.map(doc => {
+                            const a = doc.data();
+                            return `
+                                <tr>
+                                    <td class="p-3 font-bold text-slate-800">${a.mahasiswa} <span class="text-slate-400 font-normal">(${a.nrp})</span></td>
+                                    <td class="p-3">${a.prodi}</td>
+                                    <td class="p-3"><span class="px-2 py-0.5 bg-indigo-50 text-indigo-700 rounded font-semibold">${a.periode}</span></td>
+                                    <td class="p-3 font-bold text-emerald-600">Rp ${Number(a.nominal).toLocaleString('id-ID')}</td>
+                                </tr>
+                            `;
+                        }).join('');
+                    }
+                } catch(e) { console.error(e); }
+
+            } else if (pageId === 'periode_beasiswa') {
+                title.textContent = "Master Periode Beasiswa (Khusus Superadmin)";
+                container.innerHTML = `
+                    <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
+                        <div class="flex justify-between items-center mb-4">
+                            <h3 class="font-bold text-slate-800 text-sm">Daftar Periode Beasiswa BATERAI</h3>
+                            <button onclick="openAddPeriodeModal()" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-lg text-xs transition">+ Tambah Periode Baru</button>
+                        </div>
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left border-collapse text-xs">
+                                <thead>
+                                    <tr class="bg-slate-100 border-b border-slate-200 text-slate-600 font-semibold">
+                                        <th class="p-3">Nama Periode</th>
+                                        <th class="p-3">Tahun Akademik</th>
+                                        <th class="p-3">Semester</th>
+                                        <th class="p-3">Status Periode</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="periode-table-body" class="divide-y divide-slate-100">
+                                    <tr><td colspan="4" class="p-4 text-center text-slate-400">Memuat data periode...</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                `;
+
+                try {
+                    const snap = await getDocs(collection(db, "baterai_periode"));
+                    const tbody = document.getElementById('periode-table-body');
                     if (snap.empty) {
                         tbody.innerHTML = `
                             <tr>
-                                <td class="p-3">
-                                    <p class="font-bold text-slate-800">Sistem Monitoring Baterai LiFePO4 Berbasis IoT untuk PLTS</p>
-                                    <p class="text-slate-400">Skema: Riset Akselerasi Tugas Akhir</p>
-                                </td>
-                                <td class="p-3 font-semibold text-slate-700">Ahmad Fauzi (NIM. 210441100012)</td>
-                                <td class="p-3">${currentUser.full_name}</td>
-                                <td class="p-3 font-bold text-indigo-600">Rp 2.500.000</td>
-                                <td class="p-3"><span class="px-2 py-0.5 bg-emerald-100 text-emerald-700 rounded font-bold">Disetujui & Cair</span></td>
-                            </tr>
-                            <tr>
-                                <td class="p-3">
-                                    <p class="font-bold text-slate-800">Pengembangan Modul Kontrol Robot ABU Robocon 2026</p>
-                                    <p class="text-slate-400">Skema: Inovasi Kompetisi Mahasiswa</p>
-                                </td>
-                                <td class="p-3 font-semibold text-slate-700">Tim KRI Elektro (Ketua: Budi S)</td>
-                                <td class="p-3">Siti Aminah, M.T.</td>
-                                <td class="p-3 font-bold text-indigo-600">Rp 3.500.000</td>
-                                <td class="p-3"><span class="px-2 py-0.5 bg-amber-100 text-amber-700 rounded font-bold">Review Tim Pengelola</span></td>
+                                <td class="p-3 font-bold text-slate-800">Ganjil 2026/2027</td>
+                                <td class="p-3">2026/2027</td>
+                                <td class="p-3">Ganjil</td>
+                                <td class="p-3"><span class="px-2 py-0.5 bg-emerald-100 text-emerald-700 rounded font-bold">AKTIF</span></td>
                             </tr>
                         `;
                     } else {
                         tbody.innerHTML = snap.docs.map(doc => {
-                            const b = doc.data();
+                            const p = doc.data();
                             return `
                                 <tr>
-                                    <td class="p-3">
-                                        <p class="font-bold text-slate-800">${b.title}</p>
-                                        <p class="text-slate-400">Skema: ${b.scheme || 'Riset Akselerasi'}</p>
-                                    </td>
-                                    <td class="p-3 font-semibold text-slate-700">${b.student_name} (${b.student_nim})</td>
-                                    <td class="p-3">${b.mentor_name}</td>
-                                    <td class="p-3 font-bold text-indigo-600">Rp ${Number(b.amount).toLocaleString('id-ID')}</td>
-                                    <td class="p-3"><span class="px-2 py-0.5 bg-emerald-100 text-emerald-700 rounded font-bold">${b.status || 'Diajukan'}</span></td>
+                                    <td class="p-3 font-bold text-slate-800">${p.nama}</td>
+                                    <td class="p-3">${p.tahunAkademik}</td>
+                                    <td class="p-3">${p.semester}</td>
+                                    <td class="p-3"><span class="px-2 py-0.5 ${p.isActive ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-600'} rounded font-bold">${p.isActive ? 'AKTIF' : 'Nonaktif'}</span></td>
                                 </tr>
                             `;
                         }).join('');
@@ -468,7 +508,7 @@
                     const snap = await getDocs(collection(db, "users"));
                     const tbody = document.getElementById('users-table-body');
                     if(snap.empty) {
-                        tbody.innerHTML = `<tr><td colspan="4" class="p-4 text-center text-slate-400">Belum ada user terdaftar di database.</td></tr>`;
+                        tbody.innerHTML = `<tr><td colspan="4" class="p-4 text-center text-slate-400">Belum ada user terdaftar.</td></tr>`;
                     } else {
                         tbody.innerHTML = snap.docs.map(doc => {
                             const u = doc.data();
@@ -476,12 +516,12 @@
                                 <tr>
                                     <td class="p-3 font-bold text-indigo-600">@${u.username}</td>
                                     <td class="p-3">
-                                        <p class="font-bold text-slate-800">${u.full_name}</p>
-                                        <p class="text-slate-400">${u.nip_nidn || '-'}</p>
+                                        <p class="font-bold text-slate-800">${u.full_name || u.nama}</p>
+                                        <p class="text-slate-400">${u.nip_nidn || u.nip || '-'}</p>
                                     </td>
                                     <td class="p-3">${u.prodi || 'Jurusan'}</td>
                                     <td class="p-3">
-                                        ${(u.roles || []).map(r => `<span class="px-2 py-0.5 bg-slate-800 text-slate-200 rounded font-semibold text-[10px] mr-1">${r}</span>`).join('')}
+                                        ${(u.roles || [u.role]).map(r => `<span class="px-2 py-0.5 bg-slate-800 text-slate-200 rounded font-semibold text-[10px] mr-1">${r}</span>`).join('')}
                                     </td>
                                 </tr>
                             `;
@@ -491,88 +531,204 @@
 
             } else {
                 title.textContent = pageId.replace('_', ' ').toUpperCase();
-                container.innerHTML = `<div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">Modul <b>${pageId}</b> terhubung langsung dengan Cloud Firestore database.</div>`;
+                container.innerHTML = `<div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">Modul <b>${pageId}</b> terhubung dengan database Cloud Firestore.</div>`;
             }
         };
 
-        // MODAL UNTUK PENGAJUAN BANTUAN RISTEK BATERAI
-        window.openAddBateraiGrantModal = function() {
+        // MODAL INPUT IURAN BATERAI
+        window.openInputIuranModal = function() {
             openModal(`
                 <div class="p-6">
                     <div class="flex justify-between items-center mb-4 border-b pb-3">
-                        <div>
-                            <h3 class="font-bold text-slate-800 text-sm">Pengajuan Bantuan Riset BATERAI</h3>
-                            <p class="text-[11px] text-slate-500">Iuran Dosen & Tendik untuk Akselerasi Riset Mahasiswa</p>
-                        </div>
+                        <h3 class="font-bold text-slate-800 text-sm">Input Pembayaran Iuran BATERAI</h3>
                         <button onclick="closeModal()" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark text-lg"></i></button>
                     </div>
-                    <form onsubmit="submitBateraiGrant(event)" class="space-y-3 text-xs">
+                    <form onsubmit="submitIuranBaterai(event)" class="space-y-3 text-xs">
                         <div>
-                            <label class="block font-semibold mb-1 text-slate-700">Judul Inovasi / Riset Mahasiswa</label>
-                            <input type="text" id="bat-title" required placeholder="Judul Tugas Akhir / Proyek Inovasi" class="w-full px-3 py-2 border rounded-lg outline-none">
+                            <label class="block font-semibold mb-1 text-slate-700">Nama Dosen / Tendik Donatur</label>
+                            <input type="text" id="iuran-nama" required placeholder="Nama Penyumbang" class="w-full px-3 py-2 border rounded-lg outline-none">
                         </div>
                         <div class="grid grid-cols-2 gap-3">
                             <div>
-                                <label class="block font-semibold mb-1 text-slate-700">Nama Mahasiswa</label>
-                                <input type="text" id="bat-student-name" required placeholder="Nama Mahasiswa" class="w-full px-3 py-2 border rounded-lg outline-none">
-                            </div>
-                            <div>
-                                <label class="block font-semibold mb-1 text-slate-700">NIM Mahasiswa</label>
-                                <input type="text" id="bat-student-nim" required placeholder="NIM" class="w-full px-3 py-2 border rounded-lg outline-none">
-                            </div>
-                        </div>
-                        <div class="grid grid-cols-2 gap-3">
-                            <div>
-                                <label class="block font-semibold mb-1 text-slate-700">Skema Bantuan</label>
-                                <select id="bat-scheme" class="w-full px-3 py-2 border rounded-lg outline-none">
-                                    <option>Akselerasi Tugas Akhir</option>
-                                    <option>Inovasi Lomba / Kompetisi</option>
-                                    <option>Publikasi Ilmiah Mahasiswa</option>
+                                <label class="block font-semibold mb-1 text-slate-700">Bulan</label>
+                                <select id="iuran-bulan" class="w-full px-3 py-2 border rounded-lg outline-none">
+                                    <option>Januari</option><option>Februari</option><option>Maret</option><option>April</option>
+                                    <option>Mei</option><option>Juni</option><option>Juli</option><option>Agustus</option>
+                                    <option>September</option><option>Oktober</option><option>November</option><option>Desember</option>
                                 </select>
                             </div>
                             <div>
-                                <label class="block font-semibold mb-1 text-slate-700">Usulan Dana (Rp)</label>
-                                <input type="number" id="bat-amount" required placeholder="misal: 2500000" class="w-full px-3 py-2 border rounded-lg outline-none">
+                                <label class="block font-semibold mb-1 text-slate-700">Tahun</label>
+                                <input type="number" id="iuran-tahun" value="2026" required class="w-full px-3 py-2 border rounded-lg outline-none">
                             </div>
+                        </div>
+                        <div>
+                            <label class="block font-semibold mb-1 text-slate-700">Nominal Iuran (Rp)</label>
+                            <input type="number" id="iuran-jumlah" required placeholder="100000" class="w-full px-3 py-2 border rounded-lg outline-none">
                         </div>
                         <div class="flex justify-end space-x-2 border-t pt-4">
                             <button type="button" onclick="closeModal()" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg font-semibold">Batal</button>
-                            <button type="submit" id="btn-save-grant" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-semibold">Ajukan ke Firestore</button>
+                            <button type="submit" id="btn-save-iuran" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-semibold">Simpan Iuran</button>
                         </div>
                     </form>
                 </div>
             `);
         };
 
-        window.submitBateraiGrant = async function(e) {
+        window.submitIuranBaterai = async function(e) {
             e.preventDefault();
-            const btn = document.getElementById('btn-save-grant');
+            const btn = document.getElementById('btn-save-iuran');
             btn.disabled = true;
 
-            const newGrant = {
-                title: document.getElementById('bat-title').value.trim(),
-                student_name: document.getElementById('bat-student-name').value.trim(),
-                student_nim: document.getElementById('bat-student-nim').value.trim(),
-                scheme: document.getElementById('bat-scheme').value,
-                amount: parseFloat(document.getElementById('bat-amount').value),
-                mentor_name: currentUser.full_name,
-                status: "Diajukan",
+            const newIuran = {
+                nama: document.getElementById('iuran-nama').value.trim(),
+                bulan: document.getElementById('iuran-bulan').value,
+                tahun: document.getElementById('iuran-tahun').value,
+                jumlah: parseFloat(document.getElementById('iuran-jumlah').value),
                 created_at: new Date()
             };
 
             try {
-                await addDoc(collection(db, "baterai_grants"), newGrant);
-                alert("Pengajuan hibah BATERAI berhasil disimpan ke database!");
+                await addDoc(collection(db, "baterai_iuran"), newIuran);
+                alert("Data iuran BATERAI berhasil disimpan!");
                 closeModal();
                 navigate('baterai_program');
             } catch (err) {
-                alert("Gagal menyimpan pengajuan: " + err.message);
+                alert("Gagal menyimpan iuran: " + err.message);
             } finally {
                 btn.disabled = false;
             }
         };
 
-        // TAMBAH USER BARU LANGSUNG KE FIRESTORE
+        // MODAL PENCAIRAN BEASISWA MAHASISWA
+        window.openPencairanModal = function() {
+            openModal(`
+                <div class="p-6">
+                    <div class="flex justify-between items-center mb-4 border-b pb-3">
+                        <h3 class="font-bold text-slate-800 text-sm">Pencairan Beasiswa BATERAI</h3>
+                        <button onclick="closeModal()" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark text-lg"></i></button>
+                    </div>
+                    <form onsubmit="submitPencairanBaterai(event)" class="space-y-3 text-xs">
+                        <div>
+                            <label class="block font-semibold mb-1 text-slate-700">Nama Mahasiswa Penerima</label>
+                            <input type="text" id="alk-mhs" required placeholder="Nama Mahasiswa" class="w-full px-3 py-2 border rounded-lg outline-none">
+                        </div>
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <label class="block font-semibold mb-1 text-slate-700">NRP / NIM</label>
+                                <input type="text" id="alk-nrp" required placeholder="NRP" class="w-full px-3 py-2 border rounded-lg outline-none">
+                            </div>
+                            <div>
+                                <label class="block font-semibold mb-1 text-slate-700">Program Studi</label>
+                                <input type="text" id="alk-prodi" required placeholder="Teknologi Rekayasa Otomasi" class="w-full px-3 py-2 border rounded-lg outline-none">
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <label class="block font-semibold mb-1 text-slate-700">Periode Beasiswa</label>
+                                <input type="text" id="alk-periode" value="Ganjil 2026/2027" required class="w-full px-3 py-2 border rounded-lg outline-none">
+                            </div>
+                            <div>
+                                <label class="block font-semibold mb-1 text-slate-700">Nominal Pencairan (Rp)</label>
+                                <input type="number" id="alk-nominal" required placeholder="2500000" class="w-full px-3 py-2 border rounded-lg outline-none">
+                            </div>
+                        </div>
+                        <div class="flex justify-end space-x-2 border-t pt-4">
+                            <button type="button" onclick="closeModal()" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg font-semibold">Batal</button>
+                            <button type="submit" id="btn-save-alk" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-semibold">Cairkan Beasiswa</button>
+                        </div>
+                    </form>
+                </div>
+            `);
+        };
+
+        window.submitPencairanBaterai = async function(e) {
+            e.preventDefault();
+            const btn = document.getElementById('btn-save-alk');
+            btn.disabled = true;
+
+            const newAlokasi = {
+                mahasiswa: document.getElementById('alk-mhs').value.trim(),
+                nrp: document.getElementById('alk-nrp').value.trim(),
+                prodi: document.getElementById('alk-prodi').value.trim(),
+                periode: document.getElementById('alk-periode').value.trim(),
+                nominal: parseFloat(document.getElementById('alk-nominal').value),
+                created_at: new Date()
+            };
+
+            try {
+                await addDoc(collection(db, "baterai_alokasi"), newAlokasi);
+                alert("Pencairan dana BATERAI berhasil dicatat!");
+                closeModal();
+                navigate('baterai_program');
+            } catch (err) {
+                alert("Gagal mencatat pencairan: " + err.message);
+            } finally {
+                btn.disabled = false;
+            }
+        };
+
+        // MODAL ADD PERIODE BEASISWA (SUPERADMIN)
+        window.openAddPeriodeModal = function() {
+            openModal(`
+                <div class="p-6">
+                    <div class="flex justify-between items-center mb-4 border-b pb-3">
+                        <h3 class="font-bold text-slate-800 text-sm">Tambah Periode Beasiswa Baru</h3>
+                        <button onclick="closeModal()" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark text-lg"></i></button>
+                    </div>
+                    <form onsubmit="submitNewPeriode(event)" class="space-y-3 text-xs">
+                        <div>
+                            <label class="block font-semibold mb-1 text-slate-700">Nama Periode</label>
+                            <input type="text" id="per-nama" required placeholder="Ganjil 2026/2027" class="w-full px-3 py-2 border rounded-lg outline-none">
+                        </div>
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <label class="block font-semibold mb-1 text-slate-700">Tahun Akademik</label>
+                                <input type="text" id="per-thn" value="2026/2027" required class="w-full px-3 py-2 border rounded-lg outline-none">
+                            </div>
+                            <div>
+                                <label class="block font-semibold mb-1 text-slate-700">Semester</label>
+                                <select id="per-sem" class="w-full px-3 py-2 border rounded-lg outline-none">
+                                    <option>Ganjil</option>
+                                    <option>Genap</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="flex justify-end space-x-2 border-t pt-4">
+                            <button type="button" onclick="closeModal()" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg font-semibold">Batal</button>
+                            <button type="submit" id="btn-save-per" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-semibold">Simpan Periode</button>
+                        </div>
+                    </form>
+                </div>
+            `);
+        };
+
+        window.submitNewPeriode = async function(e) {
+            e.preventDefault();
+            const btn = document.getElementById('btn-save-per');
+            btn.disabled = true;
+
+            const newPeriode = {
+                nama: document.getElementById('per-nama').value.trim(),
+                tahunAkademik: document.getElementById('per-thn').value.trim(),
+                semester: document.getElementById('per-sem').value,
+                isActive: true,
+                created_at: new Date()
+            };
+
+            try {
+                await addDoc(collection(db, "baterai_periode"), newPeriode);
+                alert("Periode beasiswa baru berhasil dibuat!");
+                closeModal();
+                navigate('periode_beasiswa');
+            } catch (err) {
+                alert("Gagal membuat periode: " + err.message);
+            } finally {
+                btn.disabled = false;
+            }
+        };
+
+        // MODAL ADD USER
         window.openAddUserModal = function() {
             openModal(`
                 <div class="p-6">
@@ -580,10 +736,10 @@
                         <h3 class="font-bold text-slate-800 text-sm">Pendaftaran User Baru ke Database</h3>
                         <button onclick="closeModal()" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark text-lg"></i></button>
                     </div>
-                    <form id="add-user-form" onsubmit="submitNewUser(event)" class="space-y-3 text-xs">
+                    <form onsubmit="submitNewUser(event)" class="space-y-3 text-xs">
                         <div>
                             <label class="block font-semibold mb-1 text-slate-700">Username Terdaftar</label>
-                            <input type="text" id="new-username" required placeholder="misal: nur_otomasi" class="w-full px-3 py-2 border rounded-lg outline-none">
+                            <input type="text" id="new-username" required placeholder="misal: dosen_jte" class="w-full px-3 py-2 border rounded-lg outline-none">
                         </div>
                         <div>
                             <label class="block font-semibold mb-1 text-slate-700">Password</label>
@@ -594,18 +750,12 @@
                             <input type="text" id="new-fullname" required placeholder="Nama Lengkap" class="w-full px-3 py-2 border rounded-lg outline-none">
                         </div>
                         <div>
-                            <label class="block font-semibold mb-1 text-slate-700">NIP / NIDN</label>
-                            <input type="text" id="new-nip" placeholder="Nomor Induk Pegawai" class="w-full px-3 py-2 border rounded-lg outline-none">
-                        </div>
-                        <div>
                             <label class="block font-semibold mb-1 text-slate-700">Kombinasi Role (Centang):</label>
                             <div class="grid grid-cols-2 gap-2 p-2 bg-slate-50 rounded border" id="role-checkboxes">
                                 <label><input type="checkbox" value="dosen"> Dosen</label>
-                                <label><input type="checkbox" value="kaprodi"> Kaprodi</label>
-                                <label><input type="checkbox" value="kajur"> Kajur</label>
-                                <label><input type="checkbox" value="sekjur"> Sekjur</label>
                                 <label><input type="checkbox" value="tendik"> Tendik</label>
-                                <label><input type="checkbox" value="admin"> Admin System</label>
+                                <label><input type="checkbox" value="admin"> Admin</label>
+                                <label><input type="checkbox" value="superadmin"> Superadmin</label>
                             </div>
                         </div>
                         <div class="flex justify-end space-x-2 border-t pt-4">
@@ -628,18 +778,17 @@
                 username: document.getElementById('new-username').value.trim(),
                 password: document.getElementById('new-password').value.trim(),
                 full_name: document.getElementById('new-fullname').value.trim(),
-                nip_nidn: document.getElementById('new-nip').value.trim(),
                 roles: selectedRoles.length > 0 ? selectedRoles : ["dosen"],
                 prodi: "Jurusan Teknologi Elektro"
             };
 
             try {
                 await addDoc(collection(db, "users"), newUser);
-                alert("User baru berhasil ditambahkan ke database Firestore!");
+                alert("User baru berhasil disimpan!");
                 closeModal();
                 navigate('users');
             } catch (err) {
-                alert("Gagal menyimpan data: " + err.message);
+                alert("Gagal menyimpan data user: " + err.message);
             } finally {
                 btn.disabled = false;
             }
