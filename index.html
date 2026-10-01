@@ -8,9 +8,6 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- FontAwesome CDN -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <style>
-        .sidebar-active { background-color: rgba(255, 255, 255, 0.15); border-left: 4px solid #6366f1; }
-    </style>
 </head>
 <body class="bg-slate-100 font-sans text-slate-800 antialiased">
 
@@ -20,7 +17,7 @@
         <!-- LOGIN VIEW -->
         <div id="login-view" class="flex-1 flex items-center justify-center p-4 bg-slate-900">
             <div class="bg-white w-full max-w-md rounded-2xl shadow-2xl p-8 border border-slate-200">
-                <div class="text-center mb-8">
+                <div class="text-center mb-6">
                     <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-indigo-100 text-indigo-600 mb-4">
                         <i class="fa-solid fa-microchip text-3xl"></i>
                     </div>
@@ -28,7 +25,12 @@
                     <p class="text-sm text-slate-500 mt-1">Jurusan Teknologi Elektro</p>
                 </div>
 
-                <form id="login-form" onsubmit="handleLogin(event)" class="space-y-5">
+                <!-- FIREBASE CONNECTION STATUS BADGE -->
+                <div id="db-status" class="mb-5 p-2.5 rounded-lg bg-amber-50 text-amber-700 text-xs font-semibold flex items-center justify-between border border-amber-200">
+                    <span><i class="fa-solid fa-spinner fa-spin mr-2"></i> Menghubungkan ke Firebase...</span>
+                </div>
+
+                <form id="login-form" onsubmit="handleLogin(event)" class="space-y-4">
                     <div>
                         <label class="block text-sm font-medium text-slate-700 mb-1">Username</label>
                         <div class="relative">
@@ -58,19 +60,18 @@
                     </button>
                 </form>
 
-                <div class="mt-6 text-center text-xs text-slate-400 border-t pt-4 space-y-1">
-                    <p><b>Akun Demo Terhubung Ke Firebase:</b></p>
-                    <p>• <b>kaprodi</b> / 123 <i>(Role: Kaprodi + Dosen)</i></p>
-                    <p>• <b>kajur</b> / 123 <i>(Role: Kajur + Dosen)</i></p>
-                    <p>• <b>admin</b> / 123 <i>(Role: Admin + Dosen)</i></p>
+                <!-- HELPER SEED BUTTON -->
+                <div class="mt-6 border-t pt-4 text-center">
+                    <button onclick="seedDatabase()" id="btn-seed" class="text-xs bg-slate-100 hover:bg-slate-200 text-slate-700 py-2 px-3 rounded-md font-medium transition">
+                        <i class="fa-solid fa-database mr-1"></i> Isi Firestore dengan Data Demo Awal
+                    </button>
+                    <p class="text-[11px] text-slate-400 mt-2">Gunakan tombol di atas jika koleksi `users` di Firebase Anda masih kosong.</p>
                 </div>
             </div>
         </div>
 
         <!-- MAIN DASHBOARD VIEW -->
         <div id="dashboard-view" class="hidden flex-1 flex flex-col md:flex-row min-h-screen">
-            
-            <!-- SIDEBAR -->
             <aside class="w-full md:w-64 bg-slate-900 text-slate-300 flex flex-col justify-between shrink-0">
                 <div>
                     <div class="p-5 flex items-center space-x-3 border-b border-slate-800">
@@ -80,22 +81,15 @@
                             <span class="text-xs text-slate-400">Teknologi Elektro</span>
                         </div>
                     </div>
-
-                    <nav class="p-3 space-y-1 text-sm font-medium" id="sidebar-menu">
-                        <!-- Menu dinamis dirender berdasarkan multi-role -->
-                    </nav>
+                    <nav class="p-3 space-y-1 text-sm font-medium" id="sidebar-menu"></nav>
                 </div>
 
                 <div class="p-4 border-t border-slate-800 bg-slate-950/50">
                     <div class="flex items-center space-x-3 mb-3">
-                        <div class="w-9 h-9 rounded-full bg-indigo-600 text-white flex items-center justify-center font-bold shrink-0" id="user-avatar">
-                            U
-                        </div>
+                        <div class="w-9 h-9 rounded-full bg-indigo-600 text-white flex items-center justify-center font-bold shrink-0" id="user-avatar">U</div>
                         <div class="overflow-hidden">
                             <p class="text-sm font-semibold text-white truncate" id="user-display-name">User Name</p>
-                            <div class="flex flex-wrap gap-1 mt-1" id="user-roles-badges">
-                                <!-- Badge role dirender di sini -->
-                            </div>
+                            <div class="flex flex-wrap gap-1 mt-1" id="user-roles-badges"></div>
                         </div>
                     </div>
                     <button onclick="handleLogout()" class="w-full py-2 px-3 bg-red-600/20 hover:bg-red-600 text-red-300 hover:text-white rounded-lg text-xs font-semibold flex items-center justify-center space-x-2 transition">
@@ -105,34 +99,26 @@
                 </div>
             </aside>
 
-            <!-- MAIN CONTENT AREA -->
             <main class="flex-1 bg-slate-50 flex flex-col overflow-y-auto">
                 <header class="bg-white border-b border-slate-200 py-4 px-6 flex items-center justify-between sticky top-0 z-10 shadow-sm">
                     <div>
                         <h1 class="text-xl font-bold text-slate-800" id="page-title">Dashboard Overview</h1>
                         <p class="text-xs text-slate-500" id="user-context-info">Sistem Terintegrasi</p>
                     </div>
-                    <div class="flex items-center space-x-4">
-                        <span class="text-xs bg-indigo-50 text-indigo-700 px-3 py-1.5 rounded-full font-semibold border border-indigo-200">
-                            T.A. 2026/2027 - Ganjil
-                        </span>
-                    </div>
+                    <span class="text-xs bg-indigo-50 text-indigo-700 px-3 py-1.5 rounded-full font-semibold border border-indigo-200">
+                        T.A. 2026/2027 - Ganjil
+                    </span>
                 </header>
-
-                <div class="p-6 flex-1" id="main-content">
-                    <!-- Dynamic Page Views -->
-                </div>
+                <div class="p-6 flex-1" id="main-content"></div>
             </main>
         </div>
     </div>
 
-    <!-- FIREBASE MODULE & APPLICATION LOGIC -->
+    <!-- FIREBASE MODULE LOGIC -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getFirestore, collection, getDocs, query, where } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
-        import { getStorage } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-storage.js";
+        import { getFirestore, collection, getDocs, addDoc, query, where } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-        // Konfigurasi Konsisten Firebase sim-jte
         const firebaseConfig = {
             apiKey: "AIzaSyB4RAHwt54aAQGD0GWEMkKpi94VdHG7kzY",
             authDomain: "sim-jte.firebaseapp.com",
@@ -143,28 +129,54 @@
             measurementId: "G-KKHDV3DMCY"
         };
 
-        // Inisialisasi Layanan Utama Firebase
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
-        const storage = getStorage(app);
-
-        // Fallback Mock Users jika data di Firestore belum disiapkannya
-        const MOCK_USERS = [
-            { username: "admin", password: "123", full_name: "Administrator Jurusan, S.T.", roles: ["admin", "dosen"], prodi: "Jurusan Teknologi Elektro" },
-            { username: "kajur", password: "123", full_name: "Dr. Eng. Ahmad, S.T., M.T.", roles: ["kajur", "dosen"], prodi: "Jurusan Teknologi Elektro" },
-            { username: "sekjur", password: "123", full_name: "Siti Aminah, S.T., M.T.", roles: ["sekjur", "dosen"], prodi: "Jurusan Teknologi Elektro" },
-            { username: "kaprodi", password: "123", full_name: "Mohammad Nur, S.Si., M.T.", roles: ["kaprodi", "dosen"], prodi: "D4 Teknik Otomasi" },
-            { username: "dosen", password: "123", full_name: "Dedi Suherman, M.Tr.T.", roles: ["dosen"], prodi: "D3 Teknik Listrik" }
-        ];
 
         let currentUser = null;
 
-        function hasAnyRole(allowedRoles) {
-            if (!currentUser || !currentUser.roles) return false;
-            return currentUser.roles.some(role => allowedRoles.includes(role));
+        // Cek Koneksi Real-time ke Firestore
+        async function checkFirebaseConnection() {
+            const statusDiv = document.getElementById('db-status');
+            try {
+                const q = query(collection(db, "users"));
+                await getDocs(q);
+                statusDiv.className = "mb-5 p-2.5 rounded-lg bg-emerald-50 text-emerald-700 text-xs font-semibold flex items-center justify-between border border-emerald-200";
+                statusDiv.innerHTML = '<span><i class="fa-solid fa-circle-check mr-2"></i> Firebase Firestore Terhubung!</span>';
+            } catch (err) {
+                console.error("Firestore connection error:", err);
+                statusDiv.className = "mb-5 p-2.5 rounded-lg bg-red-50 text-red-700 text-xs font-semibold flex items-center justify-between border border-red-200";
+                statusDiv.innerHTML = `<span><i class="fa-solid fa-triangle-exclamation mr-2"></i> Akses DB Ditolak / Belum Diizinkan di Firebase Console.</span>`;
+            }
         }
 
+        // Auto Seed Data Demo ke Firestore
+        window.seedDatabase = async function() {
+            const btn = document.getElementById('btn-seed');
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1"></i> Mengisi Data...';
+
+            const demoUsers = [
+                { username: "kaprodi", password: "123", full_name: "Mohammad Nur, S.Si., M.T.", roles: ["kaprodi", "dosen"], prodi: "D4 Teknik Otomasi" },
+                { username: "kajur", password: "123", full_name: "Dr. Eng. Ahmad, S.T., M.T.", roles: ["kajur", "dosen"], prodi: "Jurusan Teknologi Elektro" },
+                { username: "admin", password: "123", full_name: "Administrator Jurusan, S.T.", roles: ["admin", "dosen"], prodi: "Jurusan Teknologi Elektro" }
+            ];
+
+            try {
+                for (const u of demoUsers) {
+                    await addDoc(collection(db, "users"), u);
+                }
+                alert("Berhasil mengisi data demo ke Firestore! Sekarang Anda bisa login menggunakan username 'kaprodi' / '123'.");
+                checkFirebaseConnection();
+            } catch (e) {
+                alert("Gagal mengisi data: " + e.message + ". Pastikan Security Rules di Firebase Console sudah diset ke allow read, write: if true;");
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fa-solid fa-database mr-1"></i> Isi Firestore dengan Data Demo Awal';
+            }
+        };
+
         window.addEventListener('DOMContentLoaded', () => {
+            checkFirebaseConnection();
             const savedUser = localStorage.getItem('sim_jte_session');
             if (savedUser) {
                 currentUser = JSON.parse(savedUser);
@@ -172,7 +184,6 @@
             }
         });
 
-        // Autentikasi Username Query Langsung ke Firestore DB sim-jte
         window.handleLogin = async function(e) {
             e.preventDefault();
             const u = document.getElementById('login-username').value.trim();
@@ -181,37 +192,25 @@
             const btnLogin = document.getElementById('btn-login');
 
             btnLogin.disabled = true;
-            btnLogin.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i> Memeriksa DB...';
-
-            let authenticatedUser = null;
+            btnLogin.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i> Memeriksa DB Firebase...';
 
             try {
-                // Query ke koleksi 'users' di Firestore sim-jte
                 const q = query(collection(db, "users"), where("username", "==", u), where("password", "==", p));
                 const querySnapshot = await getDocs(q);
-                
+
                 if (!querySnapshot.empty) {
-                    authenticatedUser = querySnapshot.docs[0].data();
+                    currentUser = querySnapshot.docs[0].data();
+                    errDiv.classList.add('hidden');
+                    localStorage.setItem('sim_jte_session', JSON.stringify(currentUser));
+                    showDashboard();
+                } else {
+                    errDiv.classList.remove('hidden');
                 }
             } catch (error) {
-                console.warn("Koneksi Firestore mengalami kendala, beralih ke local fallback database:", error);
-            }
-
-            // Memakai Mock Local Database jika koleksi users di Firestore masih kosong
-            if (!authenticatedUser) {
-                authenticatedUser = MOCK_USERS.find(user => user.username === u && user.password === p);
-            }
-
-            btnLogin.disabled = false;
-            btnLogin.innerText = 'Masuk ke Sistem';
-
-            if (authenticatedUser) {
-                errDiv.classList.add('hidden');
-                currentUser = authenticatedUser;
-                localStorage.setItem('sim_jte_session', JSON.stringify(authenticatedUser));
-                showDashboard();
-            } else {
-                errDiv.classList.remove('hidden');
+                alert("Error koneksi: " + error.message);
+            } finally {
+                btnLogin.disabled = false;
+                btnLogin.innerText = 'Masuk ke Sistem';
             }
         };
 
@@ -221,41 +220,6 @@
             document.getElementById('dashboard-view').classList.add('hidden');
             document.getElementById('login-view').classList.remove('hidden');
         };
-
-        function renderSidebar() {
-            const menu = document.getElementById('sidebar-menu');
-            let items = [
-                { id: 'overview', label: 'Dashboard', icon: 'fa-chart-pie' },
-                { id: 'documents', label: 'Dokumen Jurusan', icon: 'fa-folder-open' }
-            ];
-
-            if (hasAnyRole(['dosen'])) {
-                items.push({ id: 'my_schedules', label: 'Jadwal Mengajar Saya', icon: 'fa-calendar-user' });
-                items.push({ id: 'my_bkd', label: 'BKD Personal', icon: 'fa-user-clock' });
-                items.push({ id: 'research', label: 'Penelitian & PKM', icon: 'fa-flask' });
-            }
-
-            if (hasAnyRole(['kaprodi'])) {
-                items.push({ id: 'manage_schedules', label: 'Plotting Jadwal Prodi', icon: 'fa-calendar-days' });
-                items.push({ id: 'achievements', label: 'Prestasi Mhs Prodi', icon: 'fa-trophy' });
-            }
-
-            if (hasAnyRole(['kajur', 'sekjur'])) {
-                items.push({ id: 'achievements', label: 'Verifikasi Prestasi', icon: 'fa-trophy' });
-                items.push({ id: 'monitoring_bkd', label: 'Monitoring BKD Jurusan', icon: 'fa-chart-bar' });
-            }
-
-            if (hasAnyRole(['admin'])) {
-                items.push({ id: 'users', label: 'Manajemen User', icon: 'fa-users-gear' });
-            }
-
-            menu.innerHTML = items.map(item => `
-                <button onclick="navigate('${item.id}')" class="w-full flex items-center space-x-3 px-3 py-2.5 rounded-lg transition hover:bg-slate-800 text-left">
-                    <i class="fa-solid ${item.icon} w-5 text-indigo-400"></i>
-                    <span>${item.label}</span>
-                </button>
-            `).join('');
-        }
 
         function showDashboard() {
             document.getElementById('login-view').classList.add('hidden');
@@ -267,13 +231,28 @@
 
             const badgeContainer = document.getElementById('user-roles-badges');
             badgeContainer.innerHTML = currentUser.roles.map(r => `
-                <span class="px-2 py-0.5 rounded bg-indigo-900/80 text-indigo-200 text-[10px] font-bold uppercase tracking-wider border border-indigo-700/50">
-                    ${r}
-                </span>
+                <span class="px-2 py-0.5 rounded bg-indigo-900/80 text-indigo-200 text-[10px] font-bold uppercase tracking-wider border border-indigo-700/50">${r}</span>
             `).join('');
 
             renderSidebar();
             navigate('overview');
+        }
+
+        function renderSidebar() {
+            const menu = document.getElementById('sidebar-menu');
+            let items = [
+                { id: 'overview', label: 'Dashboard', icon: 'fa-chart-pie' },
+                { id: 'documents', label: 'Dokumen Jurusan', icon: 'fa-folder-open' },
+                { id: 'my_schedules', label: 'Jadwal Mengajar Saya', icon: 'fa-calendar-user' },
+                { id: 'my_bkd', label: 'BKD Personal', icon: 'fa-user-clock' }
+            ];
+
+            menu.innerHTML = items.map(item => `
+                <button onclick="navigate('${item.id}')" class="w-full flex items-center space-x-3 px-3 py-2.5 rounded-lg transition hover:bg-slate-800 text-left">
+                    <i class="fa-solid ${item.icon} w-5 text-indigo-400"></i>
+                    <span>${item.label}</span>
+                </button>
+            `).join('');
         }
 
         window.navigate = function(pageId) {
@@ -283,48 +262,14 @@
             if (pageId === 'overview') {
                 title.textContent = "Dashboard Summary";
                 container.innerHTML = `
-                    <div class="mb-6 p-4 bg-indigo-50 border border-indigo-200 rounded-xl flex items-center justify-between">
-                        <div>
-                            <h4 class="font-bold text-indigo-900">Akses Terhubung Firebase Real-time</h4>
-                            <p class="text-xs text-indigo-700 mt-0.5">Project ID: <b>sim-jte</b> | Role Terdaftar: <b>${currentUser.roles.join(', ').toUpperCase()}</b>.</p>
-                        </div>
-                        <span class="px-3 py-1 bg-emerald-600 text-white rounded-lg text-xs font-semibold">Firebase Live</span>
-                    </div>
-
-                    <div class="grid grid-cols-1 md:grid-cols-4 gap-5 mb-6">
-                        <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
-                            <div>
-                                <p class="text-xs font-semibold text-slate-500 uppercase">Jadwal Saya</p>
-                                <p class="text-2xl font-bold text-slate-800 mt-1">12 SKS</p>
-                            </div>
-                            <div class="w-12 h-12 bg-blue-50 text-blue-600 rounded-lg flex items-center justify-center text-xl"><i class="fa-solid fa-clock"></i></div>
-                        </div>
-                        <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
-                            <div>
-                                <p class="text-xs font-semibold text-slate-500 uppercase">Dokumen Resmi</p>
-                                <p class="text-2xl font-bold text-slate-800 mt-1">148</p>
-                            </div>
-                            <div class="w-12 h-12 bg-emerald-50 text-emerald-600 rounded-lg flex items-center justify-center text-xl"><i class="fa-solid fa-file-contract"></i></div>
-                        </div>
-                        <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
-                            <div>
-                                <p class="text-xs font-semibold text-slate-500 uppercase">Prestasi Mhs</p>
-                                <p class="text-2xl font-bold text-slate-800 mt-1">45</p>
-                            </div>
-                            <div class="w-12 h-12 bg-amber-50 text-amber-600 rounded-lg flex items-center justify-center text-xl"><i class="fa-solid fa-award"></i></div>
-                        </div>
-                        <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
-                            <div>
-                                <p class="text-xs font-semibold text-slate-500 uppercase">Riset & PKM</p>
-                                <p class="text-2xl font-bold text-slate-800 mt-1">3 Aktif</p>
-                            </div>
-                            <div class="w-12 h-12 bg-purple-50 text-purple-600 rounded-lg flex items-center justify-center text-xl"><i class="fa-solid fa-flask"></i></div>
-                        </div>
+                    <div class="p-4 bg-emerald-50 border border-emerald-200 rounded-xl mb-6">
+                        <h4 class="font-bold text-emerald-900">Koneksi Database Firebase Berhasil!</h4>
+                        <p class="text-xs text-emerald-700 mt-1">Anda terautentikasi langsung dari Cloud Firestore `sim-jte` sebagai <b>${currentUser.full_name}</b> (${currentUser.roles.join(', ').toUpperCase()}).</p>
                     </div>
                 `;
             } else {
                 title.textContent = pageId.replace('_', ' ').toUpperCase();
-                container.innerHTML = `<div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">Modul <b>${pageId}</b> terhubung aktif dengan database Firebase <code>sim-jte</code>.</div>`;
+                container.innerHTML = `<div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">Modul <b>${pageId}</b> terhubung aktif dengan database Firebase.</div>`;
             }
         };
     </script>
