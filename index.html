@@ -3,13 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SIM-JTE | Program BATERAI Terintegrasi</title>
+    <title>SIM-JTE | Program BATERAI JTE</title>
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- FontAwesome CDN -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         .sidebar-active { background-color: rgba(255, 255, 255, 0.15); border-left: 4px solid #6366f1; }
+        .nav-tab-active { border-bottom: 3px solid #3b82f6; color: #1d4ed8; font-weight: 700; background-color: #ffffff; }
     </style>
 </head>
 <body class="bg-slate-100 font-sans text-slate-800 antialiased">
@@ -28,7 +29,6 @@
                     <p class="text-xs text-slate-500 mt-1">Jurusan Teknologi Elektro</p>
                 </div>
 
-                <!-- DB CONNECTION STATUS -->
                 <div id="db-status" class="mb-5 p-2.5 rounded-lg bg-amber-50 text-amber-700 text-xs font-semibold flex items-center justify-between border border-amber-200">
                     <span><i class="fa-solid fa-spinner fa-spin mr-2"></i> Menghubungkan ke Database Firestore...</span>
                 </div>
@@ -37,28 +37,24 @@
                     <div>
                         <label class="block text-sm font-medium text-slate-700 mb-1">Username</label>
                         <div class="relative">
-                            <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">
-                                <i class="fa-solid fa-user"></i>
-                            </span>
-                            <input type="text" id="login-username" required class="w-full pl-10 pr-4 py-2.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition text-sm" placeholder="Username terdaftar">
+                            <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400"><i class="fa-solid fa-user"></i></span>
+                            <input type="text" id="login-username" required class="w-full pl-10 pr-4 py-2.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-indigo-500 outline-none transition text-sm" placeholder="Username terdaftar">
                         </div>
                     </div>
 
                     <div>
                         <label class="block text-sm font-medium text-slate-700 mb-1">Password</label>
                         <div class="relative">
-                            <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">
-                                <i class="fa-solid fa-lock"></i>
-                            </span>
-                            <input type="password" id="login-password" required class="w-full pl-10 pr-4 py-2.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition text-sm" placeholder="••••••••">
+                            <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400"><i class="fa-solid fa-lock"></i></span>
+                            <input type="password" id="login-password" required class="w-full pl-10 pr-4 py-2.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-indigo-500 outline-none transition text-sm" placeholder="••••••••">
                         </div>
                     </div>
 
                     <div id="login-error" class="hidden p-3 rounded-lg bg-red-50 text-red-600 text-xs font-medium border border-red-200">
-                        Username atau password tidak ditemukan / salah.
+                        Username atau password tidak cocok / salah.
                     </div>
 
-                    <button type="submit" id="btn-login" class="w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-lg shadow-md hover:shadow-lg transition duration-200">
+                    <button type="submit" id="btn-login" class="w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-lg shadow-md transition duration-200">
                         Masuk ke Sistem
                     </button>
                 </form>
@@ -76,7 +72,6 @@
                             <span class="text-xs text-slate-400">Teknologi Elektro</span>
                         </div>
                     </div>
-                    <!-- NAV MENU UTAMA -->
                     <nav class="p-3 space-y-1 text-sm font-medium" id="sidebar-menu"></nav>
                 </div>
 
@@ -113,7 +108,7 @@
 
     <!-- GLOBAL MODAL CONTAINER -->
     <div id="modal-container" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4">
-        <div class="bg-white rounded-2xl shadow-2xl max-w-lg w-full overflow-hidden border border-slate-200 transform transition-all" id="modal-content"></div>
+        <div class="bg-white rounded-2xl shadow-2xl max-w-xl w-full overflow-hidden border border-slate-200 transform transition-all" id="modal-content"></div>
     </div>
 
     <!-- FIREBASE MODULE LOGIC -->
@@ -135,6 +130,7 @@
         const db = getFirestore(app);
 
         let currentUser = null;
+        let activeBateraiTab = 'riwayat_pembayaran';
 
         function hasAnyRole(allowedRoles) {
             if (!currentUser || !currentUser.roles) return false;
@@ -214,7 +210,6 @@
                 items.push({ id: 'research', label: 'Penelitian & PKM', icon: 'fa-flask' });
             }
 
-            // MENU PROGRAM BATERAI
             if (hasAnyRole(['dosen', 'tendik', 'admin', 'superadmin'])) {
                 items.push({ id: 'baterai_program', label: 'Program BATERAI', icon: 'fa-hand-holding-hand' });
             }
@@ -228,7 +223,6 @@
                 items.push({ id: 'users', label: 'Manajemen User & Role', icon: 'fa-users-gear' });
             }
 
-            // MENU KHUSUS SUPERADMIN
             if (hasAnyRole(['superadmin'])) {
                 items.push({ id: 'periode_beasiswa', label: 'Master Periode Beasiswa', icon: 'fa-calendar-range' });
                 items.push({ id: 'master_prodi', label: 'Master Prodi', icon: 'fa-sitemap' });
@@ -248,7 +242,7 @@
 
             document.getElementById('user-display-name').textContent = currentUser.full_name || currentUser.nama;
             document.getElementById('user-username').textContent = `@${currentUser.username}`;
-            document.getElementById('user-avatar').textContent = currentUser.full_name ? currentUser.full_name.charAt(0) : 'U';
+            document.getElementById('user-avatar').textContent = (currentUser.full_name || currentUser.nama) ? (currentUser.full_name || currentUser.nama).charAt(0) : 'U';
             document.getElementById('user-context-info').textContent = `Unit: ${currentUser.prodi || 'Jurusan'}`;
 
             const badgeContainer = document.getElementById('user-roles-badges');
@@ -269,7 +263,7 @@
             document.getElementById('modal-container').classList.remove('hidden');
         };
 
-        // ROUTER & LIVE DATA RENDERERS
+        // ROUTER
         window.navigate = async function(pageId) {
             const container = document.getElementById('main-content');
             const title = document.getElementById('page-title');
@@ -293,7 +287,7 @@
                 try {
                     const docsSnap = await getDocs(collection(db, "documents_official"));
                     const achSnap = await getDocs(collection(db, "achievements"));
-                    const resSnap = await getDocs(collection(db, "baterai_grants"));
+                    const resSnap = await getDocs(collection(db, "baterai_pendaftaran"));
 
                     document.getElementById('overview-metrics').innerHTML = `
                         <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
@@ -312,7 +306,7 @@
                         </div>
                         <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
                             <div>
-                                <p class="text-xs font-semibold text-slate-500 uppercase">Beasiswa BATERAI</p>
+                                <p class="text-xs font-semibold text-slate-500 uppercase">Usulan Beasiswa</p>
                                 <p class="text-2xl font-bold text-slate-800 mt-1">${resSnap.size}</p>
                             </div>
                             <div class="w-12 h-12 bg-purple-50 text-purple-600 rounded-lg flex items-center justify-center text-xl"><i class="fa-solid fa-hand-holding-hand"></i></div>
@@ -328,155 +322,8 @@
                 } catch(e) { console.error(e); }
 
             } else if (pageId === 'baterai_program') {
-                title.textContent = "BATERAI (Beasiswa Akademis Teknologi Elektro untuk Riset & Akselerasi Inovatif)";
-                
-                let adminActionPanel = '';
-                if (hasAnyRole(['admin', 'superadmin'])) {
-                    adminActionPanel = `
-                        <div class="mt-4 pt-4 border-t border-indigo-500/30 flex flex-wrap gap-2">
-                            <button onclick="openInputIuranModal()" class="px-3 py-1.5 bg-emerald-500 hover:bg-emerald-600 text-white rounded text-xs font-semibold">+ Input Iuran/Rapel</button>
-                            <button onclick="openPencairanModal()" class="px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-white rounded text-xs font-semibold">+ Pencairan Beasiswa</button>
-                        </div>
-                    `;
-                }
-
-                container.innerHTML = `
-                    <div class="p-5 bg-gradient-to-r from-indigo-900 to-indigo-800 text-white rounded-2xl shadow-md mb-6">
-                        <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                            <div>
-                                <span class="px-2.5 py-1 bg-indigo-500/30 border border-indigo-400/40 rounded-full text-[11px] font-bold uppercase tracking-wider text-indigo-200">Dana Swadaya Dosen & Tendik JTE</span>
-                                <h2 class="text-xl font-bold mt-1">BATERAI JTE</h2>
-                                <p class="text-xs text-indigo-100 mt-0.5">Beasiswa Akademis Teknologi Elektro untuk Riset & Akselerasi Inovatif Mahasiswa.</p>
-                            </div>
-                            <div class="bg-white/10 backdrop-blur-md p-3 rounded-xl border border-white/20 text-xs text-right">
-                                <p class="text-indigo-200 font-semibold"><i class="fa-solid fa-building-columns mr-1"></i> Rekening Iuran Mandiri</p>
-                                <p class="font-bold text-base text-yellow-300">1400020926979</p>
-                                <p class="text-[11px]">a.n. Siti Aminah</p>
-                            </div>
-                        </div>
-                        ${adminActionPanel}
-                    </div>
-
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-5 mb-6">
-                        <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
-                            <p class="text-xs font-semibold text-slate-500 uppercase">Total Kas Iuran Masuk</p>
-                            <p class="text-2xl font-bold text-indigo-600 mt-1" id="bat-total-masuk">Rp 0</p>
-                        </div>
-                        <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
-                            <p class="text-xs font-semibold text-slate-500 uppercase">Total Pencairan Beasiswa</p>
-                            <p class="text-2xl font-bold text-emerald-600 mt-1" id="bat-total-keluar">Rp 0</p>
-                        </div>
-                        <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
-                            <p class="text-xs font-semibold text-slate-500 uppercase">Saldo Kas BATERAI</p>
-                            <p class="text-2xl font-bold text-amber-600 mt-1" id="bat-saldo-kas">Rp 0</p>
-                        </div>
-                    </div>
-
-                    <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
-                        <h3 class="font-bold text-slate-800 text-sm mb-4">Riwayat Beasiswa & Pencairan Mahasiswa</h3>
-                        <div class="overflow-x-auto">
-                            <table class="w-full text-left border-collapse text-xs">
-                                <thead>
-                                    <tr class="bg-slate-100 border-b border-slate-200 text-slate-600 font-semibold">
-                                        <th class="p-3">NRP & Nama Mahasiswa</th>
-                                        <th class="p-3">Program Studi</th>
-                                        <th class="p-3">Periode Akademik</th>
-                                        <th class="p-3">Nominal Beasiswa</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="baterai-table-body" class="divide-y divide-slate-100">
-                                    <tr><td colspan="4" class="p-4 text-center text-slate-400">Memuat data BATERAI...</td></tr>
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                `;
-
-                // Load data BATERAI dari Firestore
-                try {
-                    const iuranSnap = await getDocs(collection(db, "baterai_iuran"));
-                    const alokasiSnap = await getDocs(collection(db, "baterai_alokasi"));
-
-                    let totalMasuk = 0;
-                    iuranSnap.forEach(doc => { totalMasuk += Number(doc.data().jumlah || 0); });
-
-                    let totalKeluar = 0;
-                    alokasiSnap.forEach(doc => { totalKeluar += Number(doc.data().nominal || 0); });
-
-                    document.getElementById('bat-total-masuk').textContent = `Rp ${totalMasuk.toLocaleString('id-ID')}`;
-                    document.getElementById('bat-total-keluar').textContent = `Rp ${totalKeluar.toLocaleString('id-ID')}`;
-                    document.getElementById('bat-saldo-kas').textContent = `Rp ${(totalMasuk - totalKeluar).toLocaleString('id-ID')}`;
-
-                    const tbody = document.getElementById('baterai-table-body');
-                    if (alokasiSnap.empty) {
-                        tbody.innerHTML = `<tr><td colspan="4" class="p-4 text-center text-slate-400">Belum ada riwayat pencairan beasiswa.</td></tr>`;
-                    } else {
-                        tbody.innerHTML = alokasiSnap.docs.map(doc => {
-                            const a = doc.data();
-                            return `
-                                <tr>
-                                    <td class="p-3 font-bold text-slate-800">${a.mahasiswa} <span class="text-slate-400 font-normal">(${a.nrp})</span></td>
-                                    <td class="p-3">${a.prodi}</td>
-                                    <td class="p-3"><span class="px-2 py-0.5 bg-indigo-50 text-indigo-700 rounded font-semibold">${a.periode}</span></td>
-                                    <td class="p-3 font-bold text-emerald-600">Rp ${Number(a.nominal).toLocaleString('id-ID')}</td>
-                                </tr>
-                            `;
-                        }).join('');
-                    }
-                } catch(e) { console.error(e); }
-
-            } else if (pageId === 'periode_beasiswa') {
-                title.textContent = "Master Periode Beasiswa (Khusus Superadmin)";
-                container.innerHTML = `
-                    <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
-                        <div class="flex justify-between items-center mb-4">
-                            <h3 class="font-bold text-slate-800 text-sm">Daftar Periode Beasiswa BATERAI</h3>
-                            <button onclick="openAddPeriodeModal()" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-lg text-xs transition">+ Tambah Periode Baru</button>
-                        </div>
-                        <div class="overflow-x-auto">
-                            <table class="w-full text-left border-collapse text-xs">
-                                <thead>
-                                    <tr class="bg-slate-100 border-b border-slate-200 text-slate-600 font-semibold">
-                                        <th class="p-3">Nama Periode</th>
-                                        <th class="p-3">Tahun Akademik</th>
-                                        <th class="p-3">Semester</th>
-                                        <th class="p-3">Status Periode</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="periode-table-body" class="divide-y divide-slate-100">
-                                    <tr><td colspan="4" class="p-4 text-center text-slate-400">Memuat data periode...</td></tr>
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                `;
-
-                try {
-                    const snap = await getDocs(collection(db, "baterai_periode"));
-                    const tbody = document.getElementById('periode-table-body');
-                    if (snap.empty) {
-                        tbody.innerHTML = `
-                            <tr>
-                                <td class="p-3 font-bold text-slate-800">Ganjil 2026/2027</td>
-                                <td class="p-3">2026/2027</td>
-                                <td class="p-3">Ganjil</td>
-                                <td class="p-3"><span class="px-2 py-0.5 bg-emerald-100 text-emerald-700 rounded font-bold">AKTIF</span></td>
-                            </tr>
-                        `;
-                    } else {
-                        tbody.innerHTML = snap.docs.map(doc => {
-                            const p = doc.data();
-                            return `
-                                <tr>
-                                    <td class="p-3 font-bold text-slate-800">${p.nama}</td>
-                                    <td class="p-3">${p.tahunAkademik}</td>
-                                    <td class="p-3">${p.semester}</td>
-                                    <td class="p-3"><span class="px-2 py-0.5 ${p.isActive ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-600'} rounded font-bold">${p.isActive ? 'AKTIF' : 'Nonaktif'}</span></td>
-                                </tr>
-                            `;
-                        }).join('');
-                    }
-                } catch(e) { console.error(e); }
+                title.textContent = "BATERAI - Jurusan Teknologi Elektro";
+                renderBateraiUserView(container);
 
             } else if (pageId === 'users') {
                 title.textContent = "Manajemen User & Hak Akses (RBAC)";
@@ -535,197 +382,312 @@
             }
         };
 
-        // MODAL INPUT IURAN BATERAI
-        window.openInputIuranModal = function() {
+        // RENDERER KHUSUS BATERAI UNTUK ROLE DOSEN & TENDIK
+        async function renderBateraiUserView(container) {
+            let totalIuranUser = 0;
+            let totalKasKeseluruhan = 0;
+            let statusBayarBulanIni = false;
+
+            // Fetch Data Kas
+            try {
+                const iuranSnap = await getDocs(collection(db, "baterai_iuran"));
+                const alokasiSnap = await getDocs(collection(db, "baterai_alokasi"));
+
+                let totalMasuk = 0;
+                let totalKeluar = 0;
+
+                iuranSnap.forEach(doc => {
+                    const d = doc.data();
+                    const sum = Number(d.jumlah || 0);
+                    totalMasuk += sum;
+                    if (d.username === currentUser.username || d.nama === (currentUser.full_name || currentUser.nama)) {
+                        totalIuranUser += sum;
+                        if (d.bulan === "Oktober" && d.tahun === "2026") statusBayarBulanIni = true;
+                    }
+                });
+
+                alokasiSnap.forEach(doc => { totalKeluar += Number(doc.data().nominal || 0); });
+                totalKasKeseluruhan = totalMasuk - totalKeluar;
+            } catch(e) { console.error(e); }
+
+            container.innerHTML = `
+                <!-- ALERT REKENING TRANSFER -->
+                <div class="mb-3 p-3.5 bg-sky-100 border border-sky-300 rounded-xl text-xs text-slate-800 flex items-center space-x-3 shadow-sm">
+                    <div class="w-8 h-8 rounded-lg bg-sky-200 text-sky-700 flex items-center justify-center shrink-0 text-base">
+                        <i class="fa-solid fa-building-columns"></i>
+                    </div>
+                    <div>
+                        <p class="font-bold text-sky-900"><i class="fa-regular fa-credit-card mr-1"></i> Rekening Transfer Iuran (Bank MANDIRI)</p>
+                        <p class="mt-0.5">Bank MANDIRI &bull; Nomor Rekening: <span class="bg-blue-600 text-white font-bold px-2 py-0.5 rounded text-[11px]">1400020926979</span> &bull; a.n. <strong>Siti Aminah</strong></p>
+                    </div>
+                </div>
+
+                <!-- ALERT STATUS PAYMENT REMINDER -->
+                <div class="mb-5 p-3.5 bg-red-100 border border-red-300 rounded-xl text-xs text-red-900 flex items-center space-x-3 shadow-sm">
+                    <div class="w-8 h-8 rounded-lg bg-red-200 text-red-700 flex items-center justify-center shrink-0 text-base">
+                        <i class="fa-solid fa-triangle-exclamation text-red-600"></i>
+                    </div>
+                    <div>
+                        <p class="font-bold text-red-700 uppercase tracking-wide"><i class="fa-solid fa-bell mr-1"></i> Perhatian Khusus</p>
+                        <p class="mt-0.5">Anda tercatat belum melakukan pembayaran bulan <strong>(Oktober 2026)</strong>. Anda dapat melakukan pembayaran pada nomor rekening di atas.</p>
+                    </div>
+                </div>
+
+                <!-- METRICS CARDS -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+                    <div class="p-5 bg-emerald-600 text-white rounded-2xl shadow-sm">
+                        <p class="text-xs font-medium opacity-90">Total Iuran Anda</p>
+                        <p class="text-3xl font-extrabold mt-1">Rp ${totalIuranUser.toLocaleString('id-ID')}</p>
+                    </div>
+                    <div class="p-5 bg-blue-600 text-white rounded-2xl shadow-sm">
+                        <p class="text-xs font-medium opacity-90">Saldo Akhir Kas Keseluruhan</p>
+                        <p class="text-3xl font-extrabold mt-1">Rp ${totalKasKeseluruhan.toLocaleString('id-ID')}</p>
+                    </div>
+                </div>
+
+                <!-- NAV TABS (4 MENU UTAMA) -->
+                <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+                    <div class="flex border-b border-slate-200 bg-slate-50/50 text-xs font-semibold text-slate-600 overflow-x-auto">
+                        <button onclick="switchBateraiTab('riwayat_pembayaran')" id="tab-btn-riwayat_pembayaran" class="px-5 py-3.5 transition flex items-center space-x-2 ${activeBateraiTab === 'riwayat_pembayaran' ? 'nav-tab-active' : 'hover:text-slate-900'}">
+                            <span>Riwayat Pembayaran</span>
+                        </button>
+                        <button onclick="switchBateraiTab('monitor_iuran')" id="tab-btn-monitor_iuran" class="px-5 py-3.5 transition flex items-center space-x-2 ${activeBateraiTab === 'monitor_iuran' ? 'nav-tab-active' : 'hover:text-slate-900'}">
+                            <i class="fa-solid fa-table-cells text-blue-500"></i>
+                            <span>Monitor Iuran Per Tahun</span>
+                        </button>
+                        <button onclick="switchBateraiTab('riwayat_beasiswa')" id="tab-btn-riwayat_beasiswa" class="px-5 py-3.5 transition flex items-center space-x-2 ${activeBateraiTab === 'riwayat_beasiswa' ? 'nav-tab-active' : 'hover:text-slate-900'}">
+                            <span>Riwayat Beasiswa</span>
+                        </button>
+                        <button onclick="switchBateraiTab('usulan_beasiswa')" id="tab-btn-usulan_beasiswa" class="px-5 py-3.5 transition flex items-center space-x-2 ${activeBateraiTab === 'usulan_beasiswa' ? 'nav-tab-active' : 'hover:text-slate-900'}">
+                            <i class="fa-solid fa-graduation-cap text-indigo-500"></i>
+                            <span>Usulan Beasiswa Mahasiswa</span>
+                        </button>
+                    </div>
+
+                    <!-- TAB CONTENT AREA -->
+                    <div class="p-6" id="baterai-tab-content">
+                        <p class="text-xs text-slate-400">Memuat data tab...</p>
+                    </div>
+                </div>
+            `;
+
+            renderBateraiTabBody();
+        }
+
+        window.switchBateraiTab = function(tabName) {
+            activeBateraiTab = tabName;
+            document.querySelectorAll('[id^="tab-btn-"]').forEach(btn => {
+                btn.className = "px-5 py-3.5 transition flex items-center space-x-2 hover:text-slate-900";
+            });
+            const activeBtn = document.getElementById(`tab-btn-${tabName}`);
+            if (activeBtn) activeBtn.className = "px-5 py-3.5 transition flex items-center space-x-2 nav-tab-active";
+            renderBateraiTabBody();
+        };
+
+        async function renderBateraiTabBody() {
+            const container = document.getElementById('baterai-tab-content');
+            if (!container) return;
+
+            if (activeBateraiTab === 'riwayat_pembayaran') {
+                container.innerHTML = `
+                    <div class="flex flex-col md:flex-row justify-between items-center mb-4 gap-3 text-xs">
+                        <div class="flex items-center space-x-2">
+                            <span>Tampilkan:</span>
+                            <select class="px-2 py-1 border rounded outline-none"><option>10</option></select>
+                            <span>baris per halaman</span>
+                        </div>
+                        <div class="relative w-full md:w-64">
+                            <input type="text" placeholder="Cari data..." class="w-full pl-8 pr-3 py-1.5 border rounded-lg outline-none text-xs">
+                            <i class="fa-solid fa-magnifying-glass absolute left-2.5 top-2 text-slate-400"></i>
+                        </div>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left border-collapse text-xs">
+                            <thead>
+                                <tr class="border-b border-slate-200 text-slate-700 font-bold bg-slate-50">
+                                    <th class="p-3">ID Transaksi <i class="fa-solid fa-arrow-up-long text-slate-400"></i><i class="fa-solid fa-arrow-down-long text-slate-400"></i></th>
+                                    <th class="p-3">Tanggal <i class="fa-solid fa-arrow-up-long text-slate-400"></i><i class="fa-solid fa-arrow-down-long text-slate-400"></i></th>
+                                    <th class="p-3">Periode <i class="fa-solid fa-arrow-up-long text-slate-400"></i><i class="fa-solid fa-arrow-down-long text-slate-400"></i></th>
+                                    <th class="p-3">Jumlah <i class="fa-solid fa-arrow-up-long text-slate-400"></i><i class="fa-solid fa-arrow-down-long text-slate-400"></i></th>
+                                    <th class="p-3">Keterangan <i class="fa-solid fa-arrow-up-long text-slate-400"></i><i class="fa-solid fa-arrow-down-long text-slate-400"></i></th>
+                                </tr>
+                            </thead>
+                            <tbody id="tbody-user-riwayat" class="divide-y divide-slate-100">
+                                <tr><td colspan="5" class="p-6 text-center text-slate-400">Tidak ada data yang cocok untuk ditampilkan</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="flex justify-between items-center mt-4 text-xs text-slate-500">
+                        <span>Menampilkan 0 - 0 dari 0 data</span>
+                        <div class="flex space-x-1">
+                            <button class="px-2.5 py-1 border rounded text-slate-400" disabled>&lt; Prev</button>
+                            <button class="px-2.5 py-1 bg-blue-600 text-white rounded font-bold">1</button>
+                            <button class="px-2.5 py-1 border rounded text-slate-400" disabled>Next &gt;</button>
+                        </div>
+                    </div>
+                `;
+
+            } else if (activeBateraiTab === 'monitor_iuran') {
+                container.innerHTML = `
+                    <div class="flex items-center space-x-2 text-blue-600 font-bold text-sm mb-4">
+                        <i class="fa-regular fa-square-check"></i>
+                        <h3>Rekapan Pembayaran Iuran Anda Per Tahun</h3>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-center border-collapse text-[11px] border border-slate-200">
+                            <thead>
+                                <tr class="bg-blue-50 text-blue-900 border-b border-slate-200 font-bold">
+                                    <th class="p-2 border-r">Tahun</th>
+                                    <th class="p-2 border-r">Jan</th><th class="p-2 border-r">Feb</th><th class="p-2 border-r">Mar</th>
+                                    <th class="p-2 border-r">Apr</th><th class="p-2 border-r">Mei</th><th class="p-2 border-r">Jun</th>
+                                    <th class="p-2 border-r">Jul</th><th class="p-2 border-r">Agu</th><th class="p-2 border-r">Sep</th>
+                                    <th class="p-2 border-r">Okt</th><th class="p-2 border-r">Nov</th><th class="p-2 border-r">Des</th>
+                                    <th class="p-2">Total Iuran</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-slate-200">
+                                ${['2026', '2027', '2028', '2029', '2030'].map(thn => `
+                                    <tr>
+                                        <td class="p-2.5 font-bold text-blue-600 border-r">${thn}</td>${Array(12).fill(0).map(() => `
+                                            <td class="p-2 border-r">
+                                                <span class="inline-flex items-center space-x-1 px-1.5 py-0.5 rounded border border-red-200 bg-red-50 text-red-600 text-[10px] font-semibold">
+                                                    <i class="fa-regular fa-circle-xmark"></i><span>Belum</span>
+                                                </span>
+                                            </td>
+                                        `).join('')}
+                                        <td class="p-2 font-bold text-slate-800">Rp 0</td>
+                                    </tr>
+                                `).join('')}
+                            </tbody>
+                        </table>
+                    </div>
+                `;
+
+            } else if (activeBateraiTab === 'riwayat_beasiswa') {
+                container.innerHTML = `
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left border-collapse text-xs">
+                            <thead>
+                                <tr class="border-b border-slate-200 text-slate-700 font-bold bg-slate-50">
+                                    <th class="p-3">NRP</th>
+                                    <th class="p-3">Nama Mahasiswa</th>
+                                    <th class="p-3">Prodi</th>
+                                    <th class="p-3">Nominal</th>
+                                    <th class="p-3">Periode Academic</th>
+                                    <th class="p-3">Tanggal Pencairan</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tbody-riwayat-alokasi" class="divide-y divide-slate-100">
+                                <tr><td colspan="6" class="p-6 text-center text-slate-400">Tidak ada data yang cocok untuk ditampilkan</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                `;
+
+            } else if (activeBateraiTab === 'usulan_beasiswa') {
+                container.innerHTML = `
+                    <div class="p-4 bg-indigo-50 border border-indigo-200 rounded-xl mb-4 flex justify-between items-center text-xs">
+                        <div>
+                            <p class="font-bold text-indigo-900">Periode Beasiswa BATERAI Aktif: Ganjil 2026/2027</p>
+                            <p class="text-indigo-700 mt-0.5">Daftar usulan mahasiswa pendaftar beasiswa yang memerlukan peninjauan berkas.</p>
+                        </div>
+                        <span class="px-2.5 py-1 bg-emerald-600 text-white rounded font-bold uppercase text-[10px]">Periode Aktif</span>
+                    </div>
+
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left border-collapse text-xs">
+                            <thead>
+                                <tr class="border-b border-slate-200 text-slate-700 font-bold bg-slate-50">
+                                    <th class="p-3">NRP & Nama Mahasiswa</th>
+                                    <th class="p-3">Prodi / Semester</th>
+                                    <th class="p-3">IPK / IPS</th>
+                                    <th class="p-3">Nominal UKT</th>
+                                    <th class="p-3">Status Seleksi</th>
+                                    <th class="p-3 text-center">Aksi / Berkas</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tbody-usulan-mhs" class="divide-y divide-slate-100">
+                                <tr><td colspan="6" class="p-4 text-center text-slate-400">Memuat daftar usulan mahasiswa pendaftar...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                `;
+
+                // Fetch pendaftaran mahasiswa dari Firestore
+                try {
+                    const snap = await getDocs(collection(db, "baterai_pendaftaran"));
+                    const tbody = document.getElementById('tbody-usulan-mhs');
+                    if (snap.empty) {
+                        tbody.innerHTML = `
+                            <tr>
+                                <td class="p-3"><p class="font-bold text-slate-800">Budi Santoso</p><p class="text-slate-400">3120600001</p></td>
+                                <td class="p-3">Teknologi Rekayasa Otomasi / Sem 5</td>
+                                <td class="p-3"><span class="font-semibold text-indigo-600">IPK 3.82</span> (IPS 3.85)</td>
+                                <td class="p-3 font-semibold">Rp 2.500.000</td>
+                                <td class="p-3"><span class="px-2 py-0.5 bg-amber-100 text-amber-700 rounded font-bold">Belum Diproses</span></td>
+                                <td class="p-3 text-center">
+                                    <button onclick="viewBerkasMhsModal('3120600001', 'Budi Santoso', '3.82', '2500000')" class="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-semibold flex items-center justify-center space-x-1.5 mx-auto">
+                                        <i class="fa-solid fa-eye"></i>
+                                        <span>View Berkas</span>
+                                    </button>
+                                </td>
+                            </tr>
+                        `;
+                    } else {
+                        tbody.innerHTML = snap.docs.map(doc => {
+                            const m = doc.data();
+                            return `
+                                <tr>
+                                    <td class="p-3"><p class="font-bold text-slate-800">${m.nama}</p><p class="text-slate-400">${m.nrp}</p></td>
+                                    <td class="p-3">${m.prodi} / Sem ${m.semester}</td>
+                                    <td class="p-3"><span class="font-semibold text-indigo-600">IPK ${m.ipk}</span> (IPS ${m.ips})</td>
+                                    <td class="p-3 font-semibold">Rp ${Number(m.ukt).toLocaleString('id-ID')}</td>
+                                    <td class="p-3"><span class="px-2 py-0.5 bg-amber-100 text-amber-700 rounded font-bold">${m.status || 'Belum Diproses'}</span></td>
+                                    <td class="p-3 text-center">
+                                        <button onclick="viewBerkasMhsModal('${m.nrp}', '${m.nama}', '${m.ipk}', '${m.ukt}', '${m.file_url}')" class="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-semibold flex items-center justify-center space-x-1.5 mx-auto">
+                                            <i class="fa-solid fa-eye"></i>
+                                            <span>View Berkas</span>
+                                        </button>
+                                    </td>
+                                </tr>
+                            `;
+                        }).join('');
+                    }
+                } catch(e) { console.error(e); }
+            }
+        }
+
+        // MODAL VIEW BERKAS MAHASISWA
+        window.viewBerkasMhsModal = function(nrp, nama, ipk, ukt, fileUrl) {
             openModal(`
                 <div class="p-6">
                     <div class="flex justify-between items-center mb-4 border-b pb-3">
-                        <h3 class="font-bold text-slate-800 text-sm">Input Pembayaran Iuran BATERAI</h3>
+                        <div>
+                            <h3 class="font-bold text-slate-800 text-sm">Berkas Pendaftaran Beasiswa BATERAI</h3>
+                            <p class="text-[11px] text-slate-500">Pendaftar: ${nama} (${nrp})</p>
+                        </div>
                         <button onclick="closeModal()" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark text-lg"></i></button>
                     </div>
-                    <form onsubmit="submitIuranBaterai(event)" class="space-y-3 text-xs">
-                        <div>
-                            <label class="block font-semibold mb-1 text-slate-700">Nama Dosen / Tendik Donatur</label>
-                            <input type="text" id="iuran-nama" required placeholder="Nama Penyumbang" class="w-full px-3 py-2 border rounded-lg outline-none">
+                    <div class="space-y-3 text-xs mb-4">
+                        <div class="p-3 bg-slate-50 rounded-lg border grid grid-cols-2 gap-2">
+                            <div><span class="text-slate-400">IPK Kumulatif:</span> <strong class="text-slate-800">${ipk}</strong></div>
+                            <div><span class="text-slate-400">Nominal UKT:</span> <strong class="text-indigo-600">Rp ${Number(ukt).toLocaleString('id-ID')}</strong></div>
                         </div>
-                        <div class="grid grid-cols-2 gap-3">
-                            <div>
-                                <label class="block font-semibold mb-1 text-slate-700">Bulan</label>
-                                <select id="iuran-bulan" class="w-full px-3 py-2 border rounded-lg outline-none">
-                                    <option>Januari</option><option>Februari</option><option>Maret</option><option>April</option>
-                                    <option>Mei</option><option>Juni</option><option>Juli</option><option>Agustus</option>
-                                    <option>September</option><option>Oktober</option><option>November</option><option>Desember</option>
-                                </select>
-                            </div>
-                            <div>
-                                <label class="block font-semibold mb-1 text-slate-700">Tahun</label>
-                                <input type="number" id="iuran-tahun" value="2026" required class="w-full px-3 py-2 border rounded-lg outline-none">
-                            </div>
+                        <div class="p-4 border border-dashed rounded-xl bg-slate-50 text-center">
+                            <i class="fa-solid fa-file-pdf text-red-500 text-4xl mb-2"></i>
+                            <p class="font-bold text-slate-700">Formulir Pendaftaran & Berkas Pendukung.pdf</p>
+                            <p class="text-[11px] text-slate-400 mt-0.5">Dokumen terverifikasi di Google Drive storage.</p>
+                            <a href="${fileUrl || '#'}" target="_blank" class="mt-3 inline-flex items-center space-x-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white font-semibold rounded-lg text-xs transition">
+                                <i class="fa-solid fa-arrow-up-right-from-square"></i>
+                                <span>Buka / Pratinjau PDF Berkas</span>
+                            </a>
                         </div>
-                        <div>
-                            <label class="block font-semibold mb-1 text-slate-700">Nominal Iuran (Rp)</label>
-                            <input type="number" id="iuran-jumlah" required placeholder="100000" class="w-full px-3 py-2 border rounded-lg outline-none">
-                        </div>
-                        <div class="flex justify-end space-x-2 border-t pt-4">
-                            <button type="button" onclick="closeModal()" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg font-semibold">Batal</button>
-                            <button type="submit" id="btn-save-iuran" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-semibold">Simpan Iuran</button>
-                        </div>
-                    </form>
-                </div>
-            `);
-        };
-
-        window.submitIuranBaterai = async function(e) {
-            e.preventDefault();
-            const btn = document.getElementById('btn-save-iuran');
-            btn.disabled = true;
-
-            const newIuran = {
-                nama: document.getElementById('iuran-nama').value.trim(),
-                bulan: document.getElementById('iuran-bulan').value,
-                tahun: document.getElementById('iuran-tahun').value,
-                jumlah: parseFloat(document.getElementById('iuran-jumlah').value),
-                created_at: new Date()
-            };
-
-            try {
-                await addDoc(collection(db, "baterai_iuran"), newIuran);
-                alert("Data iuran BATERAI berhasil disimpan!");
-                closeModal();
-                navigate('baterai_program');
-            } catch (err) {
-                alert("Gagal menyimpan iuran: " + err.message);
-            } finally {
-                btn.disabled = false;
-            }
-        };
-
-        // MODAL PENCAIRAN BEASISWA MAHASISWA
-        window.openPencairanModal = function() {
-            openModal(`
-                <div class="p-6">
-                    <div class="flex justify-between items-center mb-4 border-b pb-3">
-                        <h3 class="font-bold text-slate-800 text-sm">Pencairan Beasiswa BATERAI</h3>
-                        <button onclick="closeModal()" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark text-lg"></i></button>
                     </div>
-                    <form onsubmit="submitPencairanBaterai(event)" class="space-y-3 text-xs">
-                        <div>
-                            <label class="block font-semibold mb-1 text-slate-700">Nama Mahasiswa Penerima</label>
-                            <input type="text" id="alk-mhs" required placeholder="Nama Mahasiswa" class="w-full px-3 py-2 border rounded-lg outline-none">
-                        </div>
-                        <div class="grid grid-cols-2 gap-3">
-                            <div>
-                                <label class="block font-semibold mb-1 text-slate-700">NRP / NIM</label>
-                                <input type="text" id="alk-nrp" required placeholder="NRP" class="w-full px-3 py-2 border rounded-lg outline-none">
-                            </div>
-                            <div>
-                                <label class="block font-semibold mb-1 text-slate-700">Program Studi</label>
-                                <input type="text" id="alk-prodi" required placeholder="Teknologi Rekayasa Otomasi" class="w-full px-3 py-2 border rounded-lg outline-none">
-                            </div>
-                        </div>
-                        <div class="grid grid-cols-2 gap-3">
-                            <div>
-                                <label class="block font-semibold mb-1 text-slate-700">Periode Beasiswa</label>
-                                <input type="text" id="alk-periode" value="Ganjil 2026/2027" required class="w-full px-3 py-2 border rounded-lg outline-none">
-                            </div>
-                            <div>
-                                <label class="block font-semibold mb-1 text-slate-700">Nominal Pencairan (Rp)</label>
-                                <input type="number" id="alk-nominal" required placeholder="2500000" class="w-full px-3 py-2 border rounded-lg outline-none">
-                            </div>
-                        </div>
-                        <div class="flex justify-end space-x-2 border-t pt-4">
-                            <button type="button" onclick="closeModal()" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg font-semibold">Batal</button>
-                            <button type="submit" id="btn-save-alk" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-semibold">Cairkan Beasiswa</button>
-                        </div>
-                    </form>
-                </div>
-            `);
-        };
-
-        window.submitPencairanBaterai = async function(e) {
-            e.preventDefault();
-            const btn = document.getElementById('btn-save-alk');
-            btn.disabled = true;
-
-            const newAlokasi = {
-                mahasiswa: document.getElementById('alk-mhs').value.trim(),
-                nrp: document.getElementById('alk-nrp').value.trim(),
-                prodi: document.getElementById('alk-prodi').value.trim(),
-                periode: document.getElementById('alk-periode').value.trim(),
-                nominal: parseFloat(document.getElementById('alk-nominal').value),
-                created_at: new Date()
-            };
-
-            try {
-                await addDoc(collection(db, "baterai_alokasi"), newAlokasi);
-                alert("Pencairan dana BATERAI berhasil dicatat!");
-                closeModal();
-                navigate('baterai_program');
-            } catch (err) {
-                alert("Gagal mencatat pencairan: " + err.message);
-            } finally {
-                btn.disabled = false;
-            }
-        };
-
-        // MODAL ADD PERIODE BEASISWA (SUPERADMIN)
-        window.openAddPeriodeModal = function() {
-            openModal(`
-                <div class="p-6">
-                    <div class="flex justify-between items-center mb-4 border-b pb-3">
-                        <h3 class="font-bold text-slate-800 text-sm">Tambah Periode Beasiswa Baru</h3>
-                        <button onclick="closeModal()" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark text-lg"></i></button>
+                    <div class="flex justify-end border-t pt-3">
+                        <button onclick="closeModal()" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg font-semibold text-xs">Tutup</button>
                     </div>
-                    <form onsubmit="submitNewPeriode(event)" class="space-y-3 text-xs">
-                        <div>
-                            <label class="block font-semibold mb-1 text-slate-700">Nama Periode</label>
-                            <input type="text" id="per-nama" required placeholder="Ganjil 2026/2027" class="w-full px-3 py-2 border rounded-lg outline-none">
-                        </div>
-                        <div class="grid grid-cols-2 gap-3">
-                            <div>
-                                <label class="block font-semibold mb-1 text-slate-700">Tahun Akademik</label>
-                                <input type="text" id="per-thn" value="2026/2027" required class="w-full px-3 py-2 border rounded-lg outline-none">
-                            </div>
-                            <div>
-                                <label class="block font-semibold mb-1 text-slate-700">Semester</label>
-                                <select id="per-sem" class="w-full px-3 py-2 border rounded-lg outline-none">
-                                    <option>Ganjil</option>
-                                    <option>Genap</option>
-                                </select>
-                            </div>
-                        </div>
-                        <div class="flex justify-end space-x-2 border-t pt-4">
-                            <button type="button" onclick="closeModal()" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg font-semibold">Batal</button>
-                            <button type="submit" id="btn-save-per" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-semibold">Simpan Periode</button>
-                        </div>
-                    </form>
                 </div>
             `);
-        };
-
-        window.submitNewPeriode = async function(e) {
-            e.preventDefault();
-            const btn = document.getElementById('btn-save-per');
-            btn.disabled = true;
-
-            const newPeriode = {
-                nama: document.getElementById('per-nama').value.trim(),
-                tahunAkademik: document.getElementById('per-thn').value.trim(),
-                semester: document.getElementById('per-sem').value,
-                isActive: true,
-                created_at: new Date()
-            };
-
-            try {
-                await addDoc(collection(db, "baterai_periode"), newPeriode);
-                alert("Periode beasiswa baru berhasil dibuat!");
-                closeModal();
-                navigate('periode_beasiswa');
-            } catch (err) {
-                alert("Gagal membuat periode: " + err.message);
-            } finally {
-                btn.disabled = false;
-            }
         };
 
         // MODAL ADD USER
