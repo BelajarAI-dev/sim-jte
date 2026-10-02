@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SIM-JTE | Program BATERAI JTE</title>
+    <title>SIM-JTE | BATERAI JTE Admin System</title>
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- FontAwesome CDN -->
@@ -114,7 +114,7 @@
     <!-- FIREBASE MODULE LOGIC -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getFirestore, collection, getDocs, addDoc, query, where } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { getFirestore, collection, getDocs, addDoc, deleteDoc, doc, updateDoc, query, where } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyB4RAHwt54aAQGD0GWEMkKpi94VdHG7kzY",
@@ -130,7 +130,7 @@
         const db = getFirestore(app);
 
         let currentUser = null;
-        let activeBateraiTab = 'riwayat_pembayaran';
+        let activeAdminTab = 'riwayat_iuran';
 
         function hasAnyRole(allowedRoles) {
             if (!currentUser || !currentUser.roles) return false;
@@ -274,7 +274,7 @@
                     <div class="p-4 bg-indigo-50 border border-indigo-200 rounded-xl mb-6 flex items-center justify-between">
                         <div>
                             <h4 class="font-bold text-indigo-900">Selamat Datang, ${currentUser.full_name || currentUser.nama}!</h4>
-                            <p class="text-xs text-indigo-700 mt-1">Username: <b>@${currentUser.username}</b> | Hak Akses Role: <b>${(currentUser.roles || [currentUser.role]).join(', ').toUpperCase()}</b>.</p>
+                            <p class="text-xs text-indigo-700 mt-1">Username: <b>@${currentUser.username}</b> | Role: <b>${(currentUser.roles || [currentUser.role]).join(', ').toUpperCase()}</b>.</p>
                         </div>
                         <span class="px-3 py-1 bg-emerald-600 text-white rounded-lg text-xs font-semibold">Active Session</span>
                     </div>
@@ -322,8 +322,8 @@
                 } catch(e) { console.error(e); }
 
             } else if (pageId === 'baterai_program') {
-                title.textContent = "BATERAI - Jurusan Teknologi Elektro";
-                renderBateraiUserView(container);
+                title.textContent = "Program BATERAI - JTE";
+                renderBateraiAdminView(container);
 
             } else if (pageId === 'users') {
                 title.textContent = "Manajemen User & Hak Akses (RBAC)";
@@ -382,37 +382,24 @@
             }
         };
 
-        // RENDERER KHUSUS BATERAI UNTUK ROLE DOSEN & TENDIK
-        async function renderBateraiUserView(container) {
-            let totalIuranUser = 0;
-            let totalKasKeseluruhan = 0;
-            let statusBayarBulanIni = false;
+        // RENDERER ADMIN KHUSUS BATERAI (SESUAI GAMBAR 1 - 5)
+        async function renderBateraiAdminView(container) {
+            let totalPemasukan = 0;
+            let totalPengeluaran = 0;
 
-            // Fetch Data Kas
             try {
                 const iuranSnap = await getDocs(collection(db, "baterai_iuran"));
                 const alokasiSnap = await getDocs(collection(db, "baterai_alokasi"));
 
-                let totalMasuk = 0;
-                let totalKeluar = 0;
-
-                iuranSnap.forEach(doc => {
-                    const d = doc.data();
-                    const sum = Number(d.jumlah || 0);
-                    totalMasuk += sum;
-                    if (d.username === currentUser.username || d.nama === (currentUser.full_name || currentUser.nama)) {
-                        totalIuranUser += sum;
-                        if (d.bulan === "Oktober" && d.tahun === "2026") statusBayarBulanIni = true;
-                    }
-                });
-
-                alokasiSnap.forEach(doc => { totalKeluar += Number(doc.data().nominal || 0); });
-                totalKasKeseluruhan = totalMasuk - totalKeluar;
+                iuranSnap.forEach(doc => { totalPemasukan += Number(doc.data().jumlah || 0); });
+                alokasiSnap.forEach(doc => { totalPengeluaran += Number(doc.data().nominal || 0); });
             } catch(e) { console.error(e); }
 
+            const saldoAkhir = totalPemasukan - totalPengeluaran;
+
             container.innerHTML = `
-                <!-- ALERT REKENING TRANSFER -->
-                <div class="mb-3 p-3.5 bg-sky-100 border border-sky-300 rounded-xl text-xs text-slate-800 flex items-center space-x-3 shadow-sm">
+                <!-- TOP HEADER: BANNER REKENING -->
+                <div class="mb-4 p-3.5 bg-sky-100 border border-sky-300 rounded-xl text-xs text-slate-800 flex items-center space-x-3 shadow-sm">
                     <div class="w-8 h-8 rounded-lg bg-sky-200 text-sky-700 flex items-center justify-center shrink-0 text-base">
                         <i class="fa-solid fa-building-columns"></i>
                     </div>
@@ -422,78 +409,74 @@
                     </div>
                 </div>
 
-                <!-- ALERT STATUS PAYMENT REMINDER -->
-                <div class="mb-5 p-3.5 bg-red-100 border border-red-300 rounded-xl text-xs text-red-900 flex items-center space-x-3 shadow-sm">
-                    <div class="w-8 h-8 rounded-lg bg-red-200 text-red-700 flex items-center justify-center shrink-0 text-base">
-                        <i class="fa-solid fa-triangle-exclamation text-red-600"></i>
+                <!-- TOP METRICS CARDS (3 KARTU KAS) -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-5 mb-6">
+                    <div class="p-5 bg-emerald-700 text-white rounded-2xl shadow-sm">
+                        <p class="text-xs font-semibold opacity-90">Total Pemasukan Kas</p>
+                        <p class="text-3xl font-extrabold mt-1">Rp ${totalPemasukan.toLocaleString('id-ID')}</p>
                     </div>
-                    <div>
-                        <p class="font-bold text-red-700 uppercase tracking-wide"><i class="fa-solid fa-bell mr-1"></i> Perhatian Khusus</p>
-                        <p class="mt-0.5">Anda tercatat belum melakukan pembayaran bulan <strong>(Oktober 2026)</strong>. Anda dapat melakukan pembayaran pada nomor rekening di atas.</p>
-                    </div>
-                </div>
-
-                <!-- METRICS CARDS -->
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
-                    <div class="p-5 bg-emerald-600 text-white rounded-2xl shadow-sm">
-                        <p class="text-xs font-medium opacity-90">Total Iuran Anda</p>
-                        <p class="text-3xl font-extrabold mt-1">Rp ${totalIuranUser.toLocaleString('id-ID')}</p>
+                    <div class="p-5 bg-red-600 text-white rounded-2xl shadow-sm">
+                        <p class="text-xs font-semibold opacity-90">Total Pengeluaran Kas</p>
+                        <p class="text-3xl font-extrabold mt-1">Rp ${totalPengeluaran.toLocaleString('id-ID')}</p>
                     </div>
                     <div class="p-5 bg-blue-600 text-white rounded-2xl shadow-sm">
-                        <p class="text-xs font-medium opacity-90">Saldo Akhir Kas Keseluruhan</p>
-                        <p class="text-3xl font-extrabold mt-1">Rp ${totalKasKeseluruhan.toLocaleString('id-ID')}</p>
+                        <p class="text-xs font-semibold opacity-90">Saldo Akhir Kas Keseluruhan</p>
+                        <p class="text-3xl font-extrabold mt-1">Rp ${saldoAkhir.toLocaleString('id-ID')}</p>
                     </div>
                 </div>
 
-                <!-- NAV TABS (4 MENU UTAMA) -->
+                <!-- ADMIN NAV TABS (SESUAI GAMBAR 1-5) -->
                 <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
                     <div class="flex border-b border-slate-200 bg-slate-50/50 text-xs font-semibold text-slate-600 overflow-x-auto">
-                        <button onclick="switchBateraiTab('riwayat_pembayaran')" id="tab-btn-riwayat_pembayaran" class="px-5 py-3.5 transition flex items-center space-x-2 ${activeBateraiTab === 'riwayat_pembayaran' ? 'nav-tab-active' : 'hover:text-slate-900'}">
-                            <span>Riwayat Pembayaran</span>
+                        <button onclick="switchAdminTab('riwayat_iuran')" id="admin-tab-riwayat_iuran" class="px-5 py-3.5 transition flex items-center space-x-2 ${activeAdminTab === 'riwayat_iuran' ? 'nav-tab-active' : 'hover:text-slate-900'}">
+                            <span>Riwayat Iuran</span>
                         </button>
-                        <button onclick="switchBateraiTab('monitor_iuran')" id="tab-btn-monitor_iuran" class="px-5 py-3.5 transition flex items-center space-x-2 ${activeBateraiTab === 'monitor_iuran' ? 'nav-tab-active' : 'hover:text-slate-900'}">
+                        <button onclick="switchAdminTab('monitor_iuran')" id="admin-tab-monitor_iuran" class="px-5 py-3.5 transition flex items-center space-x-2 ${activeAdminTab === 'monitor_iuran' ? 'nav-tab-active' : 'hover:text-slate-900'}">
                             <i class="fa-solid fa-table-cells text-blue-500"></i>
-                            <span>Monitor Iuran Per Tahun</span>
+                            <span>Monitor Iuran</span>
                         </button>
-                        <button onclick="switchBateraiTab('riwayat_beasiswa')" id="tab-btn-riwayat_beasiswa" class="px-5 py-3.5 transition flex items-center space-x-2 ${activeBateraiTab === 'riwayat_beasiswa' ? 'nav-tab-active' : 'hover:text-slate-900'}">
-                            <span>Riwayat Beasiswa</span>
+                        <button onclick="switchAdminTab('input_iuran')" id="admin-tab-input_iuran" class="px-5 py-3.5 transition flex items-center space-x-2 ${activeAdminTab === 'input_iuran' ? 'nav-tab-active' : 'hover:text-slate-900'}">
+                            <span>Input Iuran / Rapel</span>
                         </button>
-                        <button onclick="switchBateraiTab('usulan_beasiswa')" id="tab-btn-usulan_beasiswa" class="px-5 py-3.5 transition flex items-center space-x-2 ${activeBateraiTab === 'usulan_beasiswa' ? 'nav-tab-active' : 'hover:text-slate-900'}">
-                            <i class="fa-solid fa-graduation-cap text-indigo-500"></i>
-                            <span>Usulan Beasiswa Mahasiswa</span>
+                        <button onclick="switchAdminTab('pengelolaan_dana')" id="admin-tab-pengelolaan_dana" class="px-5 py-3.5 transition flex items-center space-x-2 ${activeAdminTab === 'pengelolaan_dana' ? 'nav-tab-active' : 'hover:text-slate-900'}">
+                            <span>Pengelolaan Dana Beasiswa</span>
+                        </button>
+                        <button onclick="switchAdminTab('laporan_keuangan')" id="admin-tab-laporan_keuangan" class="px-5 py-3.5 transition flex items-center space-x-2 ${activeAdminTab === 'laporan_keuangan' ? 'nav-tab-active' : 'hover:text-slate-900'}">
+                            <span>Laporan Keuangan</span>
                         </button>
                     </div>
 
-                    <!-- TAB CONTENT AREA -->
-                    <div class="p-6" id="baterai-tab-content">
-                        <p class="text-xs text-slate-400">Memuat data tab...</p>
+                    <!-- TAB CONTENT BODY -->
+                    <div class="p-6" id="admin-tab-content">
+                        <p class="text-xs text-slate-400">Memuat konten tab admin...</p>
                     </div>
                 </div>
             `;
 
-            renderBateraiTabBody();
+            renderAdminTabBody();
         }
 
-        window.switchBateraiTab = function(tabName) {
-            activeBateraiTab = tabName;
-            document.querySelectorAll('[id^="tab-btn-"]').forEach(btn => {
+        window.switchAdminTab = function(tabName) {
+            activeAdminTab = tabName;
+            document.querySelectorAll('[id^="admin-tab-"]').forEach(btn => {
                 btn.className = "px-5 py-3.5 transition flex items-center space-x-2 hover:text-slate-900";
             });
-            const activeBtn = document.getElementById(`tab-btn-${tabName}`);
+            const activeBtn = document.getElementById(`admin-tab-${tabName}`);
             if (activeBtn) activeBtn.className = "px-5 py-3.5 transition flex items-center space-x-2 nav-tab-active";
-            renderBateraiTabBody();
+            renderAdminTabBody();
         };
 
-        async function renderBateraiTabBody() {
-            const container = document.getElementById('baterai-tab-content');
+        async function renderAdminTabBody() {
+            const container = document.getElementById('admin-tab-content');
             if (!container) return;
 
-            if (activeBateraiTab === 'riwayat_pembayaran') {
+            // TAB 1: RIWAYAT IURAN (GAMBAR 1)
+            if (activeAdminTab === 'riwayat_iuran') {
                 container.innerHTML = `
                     <div class="flex flex-col md:flex-row justify-between items-center mb-4 gap-3 text-xs">
                         <div class="flex items-center space-x-2">
                             <span>Tampilkan:</span>
-                            <select class="px-2 py-1 border rounded outline-none"><option>10</option></select>
+                            <select class="px-2 py-1 border rounded outline-none"><option>5</option><option>10</option></select>
                             <span>baris per halaman</span>
                         </div>
                         <div class="relative w-full md:w-64">
@@ -501,194 +484,340 @@
                             <i class="fa-solid fa-magnifying-glass absolute left-2.5 top-2 text-slate-400"></i>
                         </div>
                     </div>
+
                     <div class="overflow-x-auto">
                         <table class="w-full text-left border-collapse text-xs">
                             <thead>
                                 <tr class="border-b border-slate-200 text-slate-700 font-bold bg-slate-50">
-                                    <th class="p-3">ID Transaksi <i class="fa-solid fa-arrow-up-long text-slate-400"></i><i class="fa-solid fa-arrow-down-long text-slate-400"></i></th>
+                                    <th class="p-3">ID <i class="fa-solid fa-arrow-up-long text-slate-400"></i><i class="fa-solid fa-arrow-down-long text-slate-400"></i></th>
+                                    <th class="p-3">Nama Penyumbang <i class="fa-solid fa-arrow-up-long text-slate-400"></i><i class="fa-solid fa-arrow-down-long text-slate-400"></i></th>
                                     <th class="p-3">Tanggal <i class="fa-solid fa-arrow-up-long text-slate-400"></i><i class="fa-solid fa-arrow-down-long text-slate-400"></i></th>
                                     <th class="p-3">Periode <i class="fa-solid fa-arrow-up-long text-slate-400"></i><i class="fa-solid fa-arrow-down-long text-slate-400"></i></th>
                                     <th class="p-3">Jumlah <i class="fa-solid fa-arrow-up-long text-slate-400"></i><i class="fa-solid fa-arrow-down-long text-slate-400"></i></th>
-                                    <th class="p-3">Keterangan <i class="fa-solid fa-arrow-up-long text-slate-400"></i><i class="fa-solid fa-arrow-down-long text-slate-400"></i></th>
+                                    <th class="p-3 text-center">Aksi</th>
                                 </tr>
                             </thead>
-                            <tbody id="tbody-user-riwayat" class="divide-y divide-slate-100">
-                                <tr><td colspan="5" class="p-6 text-center text-slate-400">Tidak ada data yang cocok untuk ditampilkan</td></tr>
-                            </tbody>
-                        </table>
-                    </div>
-                    <div class="flex justify-between items-center mt-4 text-xs text-slate-500">
-                        <span>Menampilkan 0 - 0 dari 0 data</span>
-                        <div class="flex space-x-1">
-                            <button class="px-2.5 py-1 border rounded text-slate-400" disabled>&lt; Prev</button>
-                            <button class="px-2.5 py-1 bg-blue-600 text-white rounded font-bold">1</button>
-                            <button class="px-2.5 py-1 border rounded text-slate-400" disabled>Next &gt;</button>
-                        </div>
-                    </div>
-                `;
-
-            } else if (activeBateraiTab === 'monitor_iuran') {
-                container.innerHTML = `
-                    <div class="flex items-center space-x-2 text-blue-600 font-bold text-sm mb-4">
-                        <i class="fa-regular fa-square-check"></i>
-                        <h3>Rekapan Pembayaran Iuran Anda Per Tahun</h3>
-                    </div>
-                    <div class="overflow-x-auto">
-                        <table class="w-full text-center border-collapse text-[11px] border border-slate-200">
-                            <thead>
-                                <tr class="bg-blue-50 text-blue-900 border-b border-slate-200 font-bold">
-                                    <th class="p-2 border-r">Tahun</th>
-                                    <th class="p-2 border-r">Jan</th><th class="p-2 border-r">Feb</th><th class="p-2 border-r">Mar</th>
-                                    <th class="p-2 border-r">Apr</th><th class="p-2 border-r">Mei</th><th class="p-2 border-r">Jun</th>
-                                    <th class="p-2 border-r">Jul</th><th class="p-2 border-r">Agu</th><th class="p-2 border-r">Sep</th>
-                                    <th class="p-2 border-r">Okt</th><th class="p-2 border-r">Nov</th><th class="p-2 border-r">Des</th>
-                                    <th class="p-2">Total Iuran</th>
-                                </tr>
-                            </thead>
-                            <tbody class="divide-y divide-slate-200">
-                                ${['2026', '2027', '2028', '2029', '2030'].map(thn => `
-                                    <tr>
-                                        <td class="p-2.5 font-bold text-blue-600 border-r">${thn}</td>${Array(12).fill(0).map(() => `
-                                            <td class="p-2 border-r">
-                                                <span class="inline-flex items-center space-x-1 px-1.5 py-0.5 rounded border border-red-200 bg-red-50 text-red-600 text-[10px] font-semibold">
-                                                    <i class="fa-regular fa-circle-xmark"></i><span>Belum</span>
-                                                </span>
-                                            </td>
-                                        `).join('')}
-                                        <td class="p-2 font-bold text-slate-800">Rp 0</td>
-                                    </tr>
-                                `).join('')}
+                            <tbody id="tbody-admin-riwayat" class="divide-y divide-slate-100">
+                                <tr><td colspan="6" class="p-4 text-center text-slate-400">Memuat data riwayat iuran...</td></tr>
                             </tbody>
                         </table>
                     </div>
                 `;
 
-            } else if (activeBateraiTab === 'riwayat_beasiswa') {
-                container.innerHTML = `
-                    <div class="overflow-x-auto">
-                        <table class="w-full text-left border-collapse text-xs">
-                            <thead>
-                                <tr class="border-b border-slate-200 text-slate-700 font-bold bg-slate-50">
-                                    <th class="p-3">NRP</th>
-                                    <th class="p-3">Nama Mahasiswa</th>
-                                    <th class="p-3">Prodi</th>
-                                    <th class="p-3">Nominal</th>
-                                    <th class="p-3">Periode Academic</th>
-                                    <th class="p-3">Tanggal Pencairan</th>
-                                </tr>
-                            </thead>
-                            <tbody id="tbody-riwayat-alokasi" class="divide-y divide-slate-100">
-                                <tr><td colspan="6" class="p-6 text-center text-slate-400">Tidak ada data yang cocok untuk ditampilkan</td></tr>
-                            </tbody>
-                        </table>
-                    </div>
-                `;
-
-            } else if (activeBateraiTab === 'usulan_beasiswa') {
-                container.innerHTML = `
-                    <div class="p-4 bg-indigo-50 border border-indigo-200 rounded-xl mb-4 flex justify-between items-center text-xs">
-                        <div>
-                            <p class="font-bold text-indigo-900">Periode Beasiswa BATERAI Aktif: Ganjil 2026/2027</p>
-                            <p class="text-indigo-700 mt-0.5">Daftar usulan mahasiswa pendaftar beasiswa yang memerlukan peninjauan berkas.</p>
-                        </div>
-                        <span class="px-2.5 py-1 bg-emerald-600 text-white rounded font-bold uppercase text-[10px]">Periode Aktif</span>
-                    </div>
-
-                    <div class="overflow-x-auto">
-                        <table class="w-full text-left border-collapse text-xs">
-                            <thead>
-                                <tr class="border-b border-slate-200 text-slate-700 font-bold bg-slate-50">
-                                    <th class="p-3">NRP & Nama Mahasiswa</th>
-                                    <th class="p-3">Prodi / Semester</th>
-                                    <th class="p-3">IPK / IPS</th>
-                                    <th class="p-3">Nominal UKT</th>
-                                    <th class="p-3">Status Seleksi</th>
-                                    <th class="p-3 text-center">Aksi / Berkas</th>
-                                </tr>
-                            </thead>
-                            <tbody id="tbody-usulan-mhs" class="divide-y divide-slate-100">
-                                <tr><td colspan="6" class="p-4 text-center text-slate-400">Memuat daftar usulan mahasiswa pendaftar...</td></tr>
-                            </tbody>
-                        </table>
-                    </div>
-                `;
-
-                // Fetch pendaftaran mahasiswa dari Firestore
                 try {
-                    const snap = await getDocs(collection(db, "baterai_pendaftaran"));
-                    const tbody = document.getElementById('tbody-usulan-mhs');
+                    const snap = await getDocs(collection(db, "baterai_iuran"));
+                    const tbody = document.getElementById('tbody-admin-riwayat');
                     if (snap.empty) {
                         tbody.innerHTML = `
                             <tr>
-                                <td class="p-3"><p class="font-bold text-slate-800">Budi Santoso</p><p class="text-slate-400">3120600001</p></td>
-                                <td class="p-3">Teknologi Rekayasa Otomasi / Sem 5</td>
-                                <td class="p-3"><span class="font-semibold text-indigo-600">IPK 3.82</span> (IPS 3.85)</td>
-                                <td class="p-3 font-semibold">Rp 2.500.000</td>
-                                <td class="p-3"><span class="px-2 py-0.5 bg-amber-100 text-amber-700 rounded font-bold">Belum Diproses</span></td>
-                                <td class="p-3 text-center">
-                                    <button onclick="viewBerkasMhsModal('3120600001', 'Budi Santoso', '3.82', '2500000')" class="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-semibold flex items-center justify-center space-x-1.5 mx-auto">
-                                        <i class="fa-solid fa-eye"></i>
-                                        <span>View Berkas</span>
-                                    </button>
+                                <td class="p-3 font-mono text-slate-600">TRX-179083486472331</td>
+                                <td class="p-3 font-semibold text-slate-800">Abdillah Fashiha Ilman</td>
+                                <td class="p-3">1 Okt 2026</td>
+                                <td class="p-3">Oktober 2026</td>
+                                <td class="p-3 font-semibold">Rp 50.000</td>
+                                <td class="p-3 text-center space-x-1">
+                                    <button class="px-2.5 py-1 bg-amber-400 hover:bg-amber-500 text-slate-900 font-bold rounded text-[11px]"><i class="fa-solid fa-pen-to-square mr-1"></i>Edit</button>
+                                    <button class="px-2.5 py-1 bg-red-600 hover:bg-red-700 text-white font-bold rounded text-[11px]"><i class="fa-solid fa-trash-can mr-1"></i>Hapus</button>
                                 </td>
                             </tr>
                         `;
                     } else {
                         tbody.innerHTML = snap.docs.map(doc => {
-                            const m = doc.data();
+                            const d = doc.data();
                             return `
                                 <tr>
-                                    <td class="p-3"><p class="font-bold text-slate-800">${m.nama}</p><p class="text-slate-400">${m.nrp}</p></td>
-                                    <td class="p-3">${m.prodi} / Sem ${m.semester}</td>
-                                    <td class="p-3"><span class="font-semibold text-indigo-600">IPK ${m.ipk}</span> (IPS ${m.ips})</td>
-                                    <td class="p-3 font-semibold">Rp ${Number(m.ukt).toLocaleString('id-ID')}</td>
-                                    <td class="p-3"><span class="px-2 py-0.5 bg-amber-100 text-amber-700 rounded font-bold">${m.status || 'Belum Diproses'}</span></td>
-                                    <td class="p-3 text-center">
-                                        <button onclick="viewBerkasMhsModal('${m.nrp}', '${m.nama}', '${m.ipk}', '${m.ukt}', '${m.file_url}')" class="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-semibold flex items-center justify-center space-x-1.5 mx-auto">
-                                            <i class="fa-solid fa-eye"></i>
-                                            <span>View Berkas</span>
-                                        </button>
+                                    <td class="p-3 font-mono text-slate-600">${d.trx_id || 'TRX-' + doc.id.substring(0,8)}</td>
+                                    <td class="p-3 font-semibold text-slate-800">${d.nama}</td>
+                                    <td class="p-3">${d.tanggal || '1 Okt 2026'}</td>
+                                    <td class="p-3">${d.bulan} ${d.tahun}</td>
+                                    <td class="p-3 font-semibold">Rp ${Number(d.jumlah).toLocaleString('id-ID')}</td>
+                                    <td class="p-3 text-center space-x-1">
+                                        <button class="px-2.5 py-1 bg-amber-400 hover:bg-amber-500 text-slate-900 font-bold rounded text-[11px]"><i class="fa-solid fa-pen-to-square mr-1"></i>Edit</button>
+                                        <button class="px-2.5 py-1 bg-red-600 hover:bg-red-700 text-white font-bold rounded text-[11px]"><i class="fa-solid fa-trash-can mr-1"></i>Hapus</button>
                                     </td>
                                 </tr>
                             `;
                         }).join('');
                     }
                 } catch(e) { console.error(e); }
+
+            // TAB 2: MONITOR IURAN (GAMBAR 2)
+            } else if (activeAdminTab === 'monitor_iuran') {
+                container.innerHTML = `
+                    <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 gap-3 text-xs">
+                        <div class="flex items-center space-x-2 text-blue-600 font-bold text-sm">
+                            <i class="fa-regular fa-square-check"></i>
+                            <h3>Rekapan Pembayaran Iuran Per Bulan</h3>
+                        </div>
+                        <div class="flex items-center space-x-2">
+                            <span class="font-bold text-slate-600">Pilih Tahun:</span>
+                            <select class="px-3 py-1 border rounded-lg outline-none font-bold text-xs"><option>2026</option><option>2027</option></select>
+                        </div>
+                    </div>
+
+                    <div class="flex justify-between items-center mb-3 text-xs">
+                        <div class="flex items-center space-x-2">
+                            <span>Tampilkan:</span>
+                            <select class="px-2 py-1 border rounded outline-none"><option>5</option></select>
+                            <span>baris per halaman</span>
+                        </div>
+                        <div class="relative w-full md:w-64">
+                            <input type="text" placeholder="Cari data..." class="w-full pl-8 pr-3 py-1.5 border rounded-lg outline-none text-xs">
+                            <i class="fa-solid fa-magnifying-glass absolute left-2.5 top-2 text-slate-400"></i>
+                        </div>
+                    </div>
+
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-center border-collapse text-[11px] border border-slate-200">
+                            <thead>
+                                <tr class="bg-blue-100 text-blue-900 border-b border-slate-200 font-bold">
+                                    <th class="p-2 border-r text-left w-36">Nama User</th>
+                                    <th class="p-2 border-r text-left w-40">Prodi / NIP</th>
+                                    <th class="p-2 border-r">Jan</th><th class="p-2 border-r">Feb</th><th class="p-2 border-r">Mar</th>
+                                    <th class="p-2 border-r">Apr</th><th class="p-2 border-r">Mei</th><th class="p-2 border-r">Jun</th>
+                                    <th class="p-2 border-r">Jul</th><th class="p-2 border-r">Agu</th><th class="p-2 border-r">Sep</th>
+                                    <th class="p-2 border-r">Okt</th><th class="p-2 border-r">Nov</th><th class="p-2">Des</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-slate-200 text-left">
+                                <tr>
+                                    <td class="p-2.5 font-bold text-slate-800 border-r">Mohammad Nur</td>
+                                    <td class="p-2 border-r text-slate-500">Teknologi Rekayasa Otomasi<br><span class="text-[10px]">NIP: 198605082019031007</span></td>
+                                    ${Array(12).fill(0).map(() => `
+                                        <td class="p-2 border-r text-center">
+                                            <span class="inline-flex items-center space-x-1 px-1.5 py-0.5 rounded border border-red-200 bg-red-50 text-red-600 text-[10px] font-semibold">
+                                                <i class="fa-regular fa-circle-xmark"></i><span>Belum</span>
+                                            </span>
+                                        </td>
+                                    `).join('')}
+                                </tr>
+                                <tr>
+                                    <td class="p-2.5 font-bold text-slate-800 border-r">Ibrahim saiful millah</td>
+                                    <td class="p-2 border-r text-slate-500">Teknologi Rekayasa Otomasi<br><span class="text-[10px]">NIP: 199505082022031008</span></td>
+                                    ${Array(8).fill(0).map(() => `
+                                        <td class="p-2 border-r text-center">
+                                            <span class="inline-flex items-center space-x-1 px-1.5 py-0.5 rounded border border-red-200 bg-red-50 text-red-600 text-[10px] font-semibold">
+                                                <i class="fa-regular fa-circle-xmark"></i><span>Belum</span>
+                                            </span>
+                                        </td>
+                                    `).join('')}
+                                    ${Array(4).fill(0).map(() => `
+                                        <td class="p-2 border-r text-center">
+                                            <span class="inline-flex items-center space-x-1 px-1.5 py-0.5 rounded bg-emerald-600 text-white text-[10px] font-semibold">
+                                                <i class="fa-regular fa-circle-check"></i><span>Rp 86.000</span>
+                                            </span>
+                                        </td>
+                                    `).join('')}
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                `;
+
+            // TAB 3: INPUT IURAN / RAPEL (GAMBAR 3)
+            } else if (activeAdminTab === 'input_iuran') {
+                container.innerHTML = `
+                    <div class="bg-blue-600 text-white font-bold p-3 rounded-t-xl text-xs flex items-center space-x-2">
+                        <i class="fa-solid fa-pen-to-square"></i>
+                        <span>Form Input Iuran / Rapel</span>
+                    </div>
+                    <div class="p-5 border border-t-0 border-slate-200 rounded-b-xl bg-slate-50/50 mb-6 text-xs">
+                        <form onsubmit="submitFormIuranAdmin(event)" class="space-y-4">
+                            <div>
+                                <label class="block font-bold text-slate-700 mb-1">Pilih Penyumbang (Dosen/Tendik)</label>
+                                <select id="form-penyumbang" class="w-full p-2.5 bg-white border border-slate-300 rounded-lg outline-none">
+                                    <option>No Name (Teknologi Rekayasa Otomasi)</option>
+                                    <option>Mohammad Nur (Teknologi Rekayasa Otomasi)</option>
+                                    <option>Siti Aminah (Teknik Listrik Industri)</option>
+                                </select>
+                            </div>
+
+                            <div>
+                                <label class="block font-bold text-slate-700 mb-1">Pilih Tahun (2026 - 2040)</label>
+                                <select id="form-tahun" class="w-full p-2.5 bg-white border border-slate-300 rounded-lg outline-none">
+                                    <option>2026</option><option>2027</option>
+                                </select>
+                            </div>
+
+                            <div>
+                                <label class="block font-bold text-slate-700 mb-2">Pilih Bulan (Centang untuk Bayar/Rapel)</label>
+                                <div class="grid grid-cols-2 md:grid-cols-4 gap-3 bg-white p-3 rounded-lg border border-slate-200">
+                                    <label class="flex items-center space-x-2"><input type="checkbox" value="Januari"> <span>Januari</span></label>
+                                    <label class="flex items-center space-x-2"><input type="checkbox" value="Februari"> <span>Februari</span></label>
+                                    <label class="flex items-center space-x-2"><input type="checkbox" value="Maret"> <span>Maret</span></label>
+                                    <label class="flex items-center space-x-2"><input type="checkbox" value="April"> <span>April</span></label>
+                                    <label class="flex items-center space-x-2"><input type="checkbox" value="Mei"> <span>Mei</span></label>
+                                    <label class="flex items-center space-x-2"><input type="checkbox" value="Juni"> <span>Juni</span></label>
+                                    <label class="flex items-center space-x-2"><input type="checkbox" value="Juli"> <span>Juli</span></label>
+                                    <label class="flex items-center space-x-2"><input type="checkbox" value="Agustus"> <span>Agustus</span></label>
+                                    <label class="flex items-center space-x-2"><input type="checkbox" value="September"> <span>September</span></label>
+                                    <label class="flex items-center space-x-2"><input type="checkbox" value="Oktober" checked> <span>Oktober</span></label>
+                                    <label class="flex items-center space-x-2"><input type="checkbox" value="November"> <span>November</span></label>
+                                    <label class="flex items-center space-x-2"><input type="checkbox" value="Desember"> <span>Desember</span></label>
+                                </div>
+                            </div>
+
+                            <div>
+                                <label class="block font-bold text-slate-700 mb-1">Nominal Iuran Per Bulan (Rp)</label>
+                                <select id="form-nominal" class="w-full p-2.5 bg-white border border-slate-300 rounded-lg outline-none">
+                                    <option>Rp 100.000</option>
+                                    <option>Rp 50.000</option>
+                                    <option>Rp 25.000</option>
+                                </select>
+                            </div>
+
+                            <button type="submit" class="px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg shadow flex items-center space-x-2">
+                                <i class="fa-solid fa-download"></i>
+                                <span>Simpan Transaksi</span>
+                            </button>
+                        </form>
+                    </div>
+
+                    <div class="font-bold text-slate-800 text-xs mb-3 flex items-center space-x-2">
+                        <i class="fa-solid fa-table"></i>
+                        <span>Data Hasil Input Iuran Terbaru</span>
+                    </div>
+
+                    <div class="overflow-x-auto text-xs">
+                        <table class="w-full text-left border-collapse">
+                            <thead>
+                                <tr class="border-b border-slate-200 text-slate-700 font-bold bg-slate-50">
+                                    <th class="p-3">ID Transaksi</th>
+                                    <th class="p-3">Nama Penyumbang</th>
+                                    <th class="p-3">Tanggal Input</th>
+                                    <th class="p-3">Periode</th>
+                                    <th class="p-3">Jumlah</th>
+                                    <th class="p-3 text-center">Aksi</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-slate-100">
+                                <tr>
+                                    <td class="p-3 font-mono">TRX-179083486472331</td>
+                                    <td class="p-3 font-semibold">Abdillah Fashiha Ilman</td>
+                                    <td class="p-3">1 Okt 2026</td>
+                                    <td class="p-3">Oktober 2026</td>
+                                    <td class="p-3 font-bold">Rp 50.000</td>
+                                    <td class="p-3 text-center space-x-1">
+                                        <button class="px-2.5 py-1 bg-amber-400 text-slate-900 font-bold rounded text-[11px]"><i class="fa-solid fa-pen-to-square mr-1"></i>Edit</button>
+                                        <button class="px-2.5 py-1 bg-red-600 text-white font-bold rounded text-[11px]"><i class="fa-solid fa-trash-can mr-1"></i>Hapus</button>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                `;
+
+            // TAB 4: PENGELOLAAN DANA BEASISWA (GAMBAR 4)
+            } else if (activeAdminTab === 'pengelolaan_dana') {
+                container.innerHTML = `
+                    <form onsubmit="submitCairkanBeasiswa(event)" class="mb-6">
+                        <div class="grid grid-cols-1 md:grid-cols-6 gap-3 text-xs mb-3">
+                            <div class="md:col-span-1">
+                                <label class="block font-bold text-slate-700 mb-1">NRP Mahasiswa</label>
+                                <input type="text" id="cair-nrp" required placeholder="Contoh: 3120600001" class="w-full p-2.5 border rounded-lg outline-none">
+                            </div>
+                            <div class="md:col-span-2">
+                                <label class="block font-bold text-slate-700 mb-1">Nama Mahasiswa</label>
+                                <input type="text" id="cair-nama" required placeholder="Nama Mahasiswa" class="w-full p-2.5 border rounded-lg outline-none">
+                            </div>
+                            <div class="md:col-span-1">
+                                <label class="block font-bold text-slate-700 mb-1">Prodi</label>
+                                <select id="cair-prodi" class="w-full p-2.5 border rounded-lg outline-none">
+                                    <option>Teknologi Rekayasa Otomasi</option>
+                                    <option>Teknologi Rekayasa Informatika</option>
+                                    <option>Teknik Listrik Industri</option>
+                                </select>
+                            </div>
+                            <div class="md:col-span-1">
+                                <label class="block font-bold text-slate-700 mb-1">Nominal (Rp)</label>
+                                <input type="number" id="cair-nominal" required placeholder="Rp" class="w-full p-2.5 border rounded-lg outline-none">
+                            </div>
+                            <div class="md:col-span-1 grid grid-cols-2 gap-1">
+                                <div>
+                                    <label class="block font-bold text-slate-700 mb-1">Semester</label>
+                                    <select class="w-full p-2.5 border rounded-lg outline-none"><option>Ganjil</option><option>Genap</option></select>
+                                </div>
+                                <div>
+                                    <label class="block font-bold text-slate-700 mb-1">Thn Akad.</label>
+                                    <select class="w-full p-2.5 border rounded-lg outline-none"><option>2025/</option><option>2026/</option></select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="flex justify-end">
+                            <button type="submit" class="px-4 py-2.5 bg-emerald-700 hover:bg-emerald-800 text-white font-bold rounded-lg text-xs flex items-center space-x-2 shadow">
+                                <i class="fa-solid fa-camera"></i>
+                                <span>Cairkan Dana Beasiswa</span>
+                            </button>
+                        </div>
+                    </form>
+
+                    <hr class="mb-5 border-slate-200">
+
+                    <div class="font-bold text-slate-800 text-xs mb-3">Riwayat Pencairan Beasiswa</div>
+
+                    <div class="overflow-x-auto text-xs">
+                        <table class="w-full text-left border-collapse">
+                            <thead>
+                                <tr class="border-b border-slate-200 text-slate-700 font-bold bg-slate-50">
+                                    <th class="p-3">NRP</th>
+                                    <th class="p-3">Mahasiswa</th>
+                                    <th class="p-3">Prodi</th>
+                                    <th class="p-3">Nominal</th>
+                                    <th class="p-3">Periode Academic</th>
+                                    <th class="p-3">Tanggal Input</th>
+                                    <th class="p-3 text-center">Aksi</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tbody-riwayat-cair" class="divide-y divide-slate-100">
+                                <tr><td colspan="7" class="p-6 text-center text-slate-400">Tidak ada data yang cocok untuk ditampilkan</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                `;
+
+            // TAB 5: LAPORAN KEUANGAN (GAMBAR 5)
+            } else if (activeAdminTab === 'laporan_keuangan') {
+                container.innerHTML = `
+                    <div class="p-5 bg-white border border-slate-200 rounded-2xl shadow-sm">
+                        <div class="flex items-center space-x-2 text-blue-600 font-bold text-sm mb-4">
+                            <i class="fa-solid fa-chart-line"></i>
+                            <h3>Filter & Cetak Laporan Keuangan</h3>
+                        </div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-4 gap-4 text-xs mb-5">
+                            <div>
+                                <label class="block font-bold text-slate-700 mb-1">Dari Bulan</label>
+                                <select class="w-full p-2.5 border rounded-lg outline-none bg-white"><option>Januari</option></select>
+                            </div>
+                            <div>
+                                <label class="block font-bold text-slate-700 mb-1">Dari Tahun</label>
+                                <select class="w-full p-2.5 border rounded-lg outline-none bg-white"><option>2026</option></select>
+                            </div>
+                            <div>
+                                <label class="block font-bold text-slate-700 mb-1">Sampai Bulan</label>
+                                <select class="w-full p-2.5 border rounded-lg outline-none bg-white"><option>Desember</option></select>
+                            </div>
+                            <div>
+                                <label class="block font-bold text-slate-700 mb-1">Sampai Tahun</label>
+                                <select class="w-full p-2.5 border rounded-lg outline-none bg-white"><option>2026</option></select>
+                            </div>
+                        </div>
+
+                        <div class="flex justify-end space-x-2">
+                            <button class="px-4 py-2.5 bg-sky-400 hover:bg-sky-500 text-white font-bold rounded-lg text-xs flex items-center space-x-2">
+                                <i class="fa-solid fa-eye"></i>
+                                <span>Preview</span>
+                            </button>
+                            <button class="px-4 py-2.5 bg-red-600 hover:bg-red-700 text-white font-bold rounded-lg text-xs flex items-center space-x-2">
+                                <i class="fa-solid fa-file-pdf"></i>
+                                <span>PDF</span>
+                            </button>
+                        </div>
+                    </div>
+                `;
             }
         }
-
-        // MODAL VIEW BERKAS MAHASISWA
-        window.viewBerkasMhsModal = function(nrp, nama, ipk, ukt, fileUrl) {
-            openModal(`
-                <div class="p-6">
-                    <div class="flex justify-between items-center mb-4 border-b pb-3">
-                        <div>
-                            <h3 class="font-bold text-slate-800 text-sm">Berkas Pendaftaran Beasiswa BATERAI</h3>
-                            <p class="text-[11px] text-slate-500">Pendaftar: ${nama} (${nrp})</p>
-                        </div>
-                        <button onclick="closeModal()" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark text-lg"></i></button>
-                    </div>
-                    <div class="space-y-3 text-xs mb-4">
-                        <div class="p-3 bg-slate-50 rounded-lg border grid grid-cols-2 gap-2">
-                            <div><span class="text-slate-400">IPK Kumulatif:</span> <strong class="text-slate-800">${ipk}</strong></div>
-                            <div><span class="text-slate-400">Nominal UKT:</span> <strong class="text-indigo-600">Rp ${Number(ukt).toLocaleString('id-ID')}</strong></div>
-                        </div>
-                        <div class="p-4 border border-dashed rounded-xl bg-slate-50 text-center">
-                            <i class="fa-solid fa-file-pdf text-red-500 text-4xl mb-2"></i>
-                            <p class="font-bold text-slate-700">Formulir Pendaftaran & Berkas Pendukung.pdf</p>
-                            <p class="text-[11px] text-slate-400 mt-0.5">Dokumen terverifikasi di Google Drive storage.</p>
-                            <a href="${fileUrl || '#'}" target="_blank" class="mt-3 inline-flex items-center space-x-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white font-semibold rounded-lg text-xs transition">
-                                <i class="fa-solid fa-arrow-up-right-from-square"></i>
-                                <span>Buka / Pratinjau PDF Berkas</span>
-                            </a>
-                        </div>
-                    </div>
-                    <div class="flex justify-end border-t pt-3">
-                        <button onclick="closeModal()" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg font-semibold text-xs">Tutup</button>
-                    </div>
-                </div>
-            `);
-        };
 
         // MODAL ADD USER
         window.openAddUserModal = function() {
